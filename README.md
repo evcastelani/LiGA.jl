@@ -16,7 +16,7 @@ A good review of *State of Art* and applications can be found in
 There are others libraries with the same purpose, but we decide to create ours for a correct understanding of this subject.
 Evidently, we are sharing our studies with all interested person.
 
-A full documentation can be found [here](https://evcastelani.github.io/liga/).
+A full documentation can be found [here](https://evcastelani.github.io/Liga.jl.git/).
 
 
 [![Build Status](https://travis-ci.org/evcastelani/Liga.jl.svg?branch=master)](https://travis-ci.org/evcastelani/Liga.jl)
