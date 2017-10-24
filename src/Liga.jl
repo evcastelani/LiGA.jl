@@ -6,7 +6,15 @@ include("layout.jl");
 
 export layout
 
-export kb,kmultvec,
+import Base.show, Base.copy, Base.subtypes, Base.Random.rand
+importall Base.Operators
+
+
+export
+	   kbasis, pbasis, cbasis,
+	   kmultvec, pmultvec, cmultvec,
+	   kblade, pblade, cbltopb,
+       kb,kmultvec,
        grade,mvectovec,
        kblade, copy,
 	   geoprod,inner,
@@ -34,13 +42,11 @@ export kb,kmultvec,
 	   pbltocbl,
 	   kbasis,pbasis,cbasis	
 
-import Base.show, Base.copy, Base.subtypes
-importall Base.Operators
 #########################################################
 #########################################################
 """
 ```
-kbasis(x::Vector{Bool}, a::Number)
+c(x::Vector{Bool}, a::Number)
 ```
 Creates a scaled basis element of geometric algebra space from x and a.
 
@@ -850,7 +856,7 @@ projection(A::pblade, N::pblade)
 Returns the projection of the blade A onto the blade N.
 """
 function projection(A::kblade, N::kblade)
-	N2 = inverse(N)
+	N2 = inverse(N)x
 	result = geoprod(inner(A, N2), bltomv(N))
 	return result
 end
@@ -1141,8 +1147,9 @@ function Base.:+(a::pbasis,b::pbasis)
     return mvsum(a,b)
 end
 function Base.:-(a::pbasis,b::pbasis)
-	b.scl = -b.scl
-	return mvsum(a,b)
+	c = copy(b)
+	c.scl = -c.scl
+	return mvsum(a,c)
 end
 #########################################################
 function mvreverse(a::pbasis)
@@ -1719,13 +1726,15 @@ type cbasis
 	ei::Bool
 	eo::Bool
 	scl::Number
+
 	function cbasis(a::Vector{Bool},b::Bool,c::Bool,d::Number)
-		if b == c == false
-			new(a,b,c,d)
-		elseif b != c
-			new(a,b,c,d)
-		elseif b == c
-			new(a, false, false, -1.0*d)
+		if d != 0.0
+			return new(a,b,c,d)
+		else
+			l = length(a)
+			x = Vector{Bool}(l)
+			fill!(x, false)
+			return new(x, false, false, 0.0)
 		end
 	end
 end
@@ -1744,6 +1753,8 @@ Creates a multivector in the geometric algebra (Gp+1,1) composed by the sum of t
 type cmultvec
 	comp::Vector{cbasis}
 
+	cmultvec(a::cbasis) = new([a])
+	cmultvec(X::Vector{cbasis}) = new(X)
 end
 #########################################################
 function grade(a::cbasis)
@@ -1774,10 +1785,10 @@ function show(io::IO, a::cbasis)
 			end
 		end
 		if a.ei == true
-			print(io, "∞")
+			print(io, "\∞")
 		end
 		if a.eo == true
-			print(io, "ₒ")
+			print(io, "∘")
 		end
 	end
 end
@@ -1798,6 +1809,14 @@ function show(io::IO, A::cmultvec)
 	end
 end
 #########################################################
+function copy(a::cbasis)
+	er = copy(a.er)
+	ei = copy(a.ei)
+	eo = copy(a.eo)
+	scl = copy(a.scl)
+	return cbasis(er,ei,eo,scl)
+end
+#########################################################
 function copy(A::cmultvec)
 	l = length(A.comp)
 	X = Vector{cbasis}(l)
@@ -1807,99 +1826,13 @@ function copy(A::cmultvec)
 	return cmultvec(X)
 end
 #########################################################
-function geoprod(a::cbasis, b::cbasis)
-	l=length(a.er)
-	aux = 1
-	a1 = kbasis(a.er, a.scl)
-	b1 = kbasis(b.er, b.scl)
-	ab1 = geoprod(a1, b1)
-	ei = false
-	eo = false
-	if a.ei == b.ei == true || a.eo == b.eo == true
-		aux = 0
-		fill!(ab1.e,false)
-	elseif a.ei == b.eo == true || a.eo == b.ei == true
-		aux = -1
-		ei = false
-		eo = false
-	end
-	if a.ei == true && a.eo == b.ei == b.eo == false || b.ei == true && a.ei == a.eo == b.eo == false
-		ei = true
-		eo = false
-	end
-	if a.eo == true && a.ei == b.ei == b.eo == false || b.eo == true && a.ei == a.eo == b.ei == false
-		ei = false
-		eo = true
-	end
-	ab = cbasis(ab1.e, ei, eo, aux*ab1.scl)
-	return ab
-end
-#########################################################
-function Base.:∘(a::cbasis, b::cbasis)
-    return geoprod(a,b)
-end
-function Base.:∘(a::Number, b::cbasis)
-	c = copy(b)
-	c.scl = a*c.scl
-	return c
-end
-function Base.:*(a::Number, b::cbasis)
-	c = copy(b)
-	c.scl = a*c.scl
-	return c
-end
-#########################################################
-function inner(a::cbasis, b::cbasis)
-	if grade(geoprod(a,b)) == abs(grade(a) - grade(b))
-		return geoprod(a,b)
-	else
-		return cbasis(id, false, false, 0.0)
-	end
-end
-#########################################################
-function Base.:⋅(a::cbasis, b::cbasis)
-    return inner(a,b)
-end
-#########################################################
-function outer(a::cbasis, b::cbasis)
-	if grade(geoprod(a,b)) == grade(a) + grade(b)
-		return geoprod(a,b)
-	else
-		return cbasis(id, false, false, 0.0)
-	end
-end
-#########################################################
-function Base.:^(a::cbasis, b::cbasis)
-    return outer(a,b)
-end
-#########################################################
-function scalar(a::cbasis, b::cbasis)
-	if grade(geoprod(a,b)) == 0
-		return geoprod(a,b).scl
-	else
-		return cbasis(id, false, false, 0.0)
-	end
-end
-#########################################################
-function bscalar(a::cbasis, b::cbasis)
-	if grade(geoprod(a,b)) == 0
-		return geoprod(a,b)
-	else
-		return cbasis(id, false, false, 0.0)
-	end
-end
-#########################################################
-function Base.:*(a::cbasis, b::cbasis)
-    return scalar(a,b)
-end
-#########################################################
 function mvsum(a::cbasis, b::cbasis)
 	l = length(a.er)
 	er = Vector{Bool}(l)
 	fill!(er, false)
 	if a.er == b.er && a.ei == b.ei && a.eo == b.eo
 		scl = a.scl + b.scl
-	 	return cbasis(a.er, a.ei,a.eo, scl)
+	 	return cmultvec(cbasis(a.er, a.ei,a.eo, scl))
 	else
 		return cmultvec([a,b])
 	end
@@ -1911,88 +1844,6 @@ end
 function Base.:-(a::cbasis, b::cbasis)
 	b.scl = - b.scl
     return mvsum(a,b)
-end
-#########################################################
-function mvreverse(a::cbasis)
-	k = grade(a)
-	er = copy(a.er)
-	ei = copy(a.ei)
-	eo = copy(a.eo)
-	b = cbasis(er, ei, eo, 1.0)
-	b.scl = (-1)^(k*(k-1)/2)*a.scl
-	return b
-end
-#########################################################
-"""
-```
-cbtopb(a::cbasis)
-```
-Auxiliary function.
-"""
-function cbtopb(a::cbasis)
-	l = length(a.er)
-	ea = fill!(Vector{Bool}(l+1), false)
-	eb = copy(ea)
-	eb[l+1] = true
-	X = pmultvec(pbasis(ea, false, 0.0))
-	Y = copy(X)
-	f = 0
-	er = Vector{Bool}(l+1)
-	for i=1:l
-		er[i] = a.er[i]
-	end
-	er[l+1] = false
-	if a.ei == true
-		X = pmultvec([pbasis(ea, true, 1.0), pbasis(eb, false, 1.0)])
-		f = 1
-	end
-	if a.eo == true
-		Y = pmultvec([pbasis(ea, true, 0.5), pbasis(eb, false, -0.5)])
-		f = 1
-	end
-	if f == 1
-		p1 = geoprod(pmultvec(pbasis(er, false, a.scl)), X)
-		p2 = geoprod(pmultvec(pbasis(er, false, a.scl)), Y)
-		return mvsum(p1, p2)
-	else
-		return pbasis(er, false, a.scl)
-	end
-end
-#########################################################
-"""
-```
-cbtore(a::cbasis)
-```
-Auxiliary function.
-"""
-function cbtore(a::cbasis)
-	l = length(a.er)
-	e = Vector{Bool}(l+2)
-	for i=1:l
-		e[i] = a.er[i]
-	end
-	e[l+1] = a.ei
-	e[l+2] = a.eo
-	b = kbasis(e, a.scl)
-	return b
-end
-#########################################################
-"""
-```
-retocb(a::kbasis)
-```
-Auxiliary function.
-"""
-function retocb(a::kbasis)
-	l = length(a.e)
-	er = Vector{Bool}(l-2)
-	for i=1:l-2
-		er[i] = a.e[i]
-	end
-	ei = a.e[l-1]
-	eo = a.e[l]
-	b = cbasis(er, ei, eo, a.scl)
-	return b
 end
 #########################################################
 function remove(A::cmultvec, b::Number)
@@ -2017,7 +1868,11 @@ function remove(A::cmultvec, b::Number)
 		for i=1:(l-aux)
 			B[i] = A.comp[i]
 		end
-		return cmultvec(B)
+		if length(B) != 0
+			return cmultvec(B)
+		else
+			return cmultvec(cbasis(id, false, false, 0.0))
+		end
 	else
 		return A
 	end
@@ -2076,23 +1931,193 @@ function reduct(A::cmultvec)
 	end
 end
 #########################################################
-function geoprod(A::cmultvec, B::cmultvec)
-	l = length(A.comp)
-	m = length(B.comp)
-	AB = Matrix{cbasis}(l,m)
+"""
+```
+cbtopb(a::cbasis)
+```
+Auxiliary function.
+"""
+function cbtopb(a::cbasis)
+	scl = a.scl
+	l = length(a.er)
+	eb1 = vcat(copy(a.er), true)
+	eb2 = vcat(copy(a.er), false)
+	if a.ei == a.eo == true
+		result = mvsum(pbasis(eb1, true, 1.0), pbasis(eb2, false, -1.0))
+	elseif a.ei == true && a.eo == false
+		result = mvsum(pbasis(eb1, false, 1.0), pbasis(eb2, true, 1.0))
+	elseif a.ei == false && a.eo == true
+		result = mvsum(pbasis(eb1, false, -0.5), pbasis(eb2, true, 0.5))
+	elseif a.ei == a.eo == false
+		result = pmultvec(pbasis(eb2, false, 1.0))
+	end
+	l = length(result.comp)
 	for i=1:l
-		for j=1:m
-			AB[i,j] = geoprod(A.comp[i], B.comp[j])
+		result.comp[i].scl = scl*(result.comp[i].scl)
+	end
+	return result
+end
+#########################################################
+"""
+```
+pbtocb(a::pbasis)
+```
+Auxiliary function.
+"""
+function pbtocb(a::pbasis)
+	l = length(a.eb)
+	er = Vector{Bool}(l-1)
+	for i=1:l-1
+		er[i] = a.eb[i]
+	end
+	scl = a.scl
+	if a.eb[l] == true && a.ep == false
+		result = mvsum(cbasis(er,true,false,0.5*scl),cbasis(er,false,true,-scl))
+	elseif a.eb[l] == false && a.ep == true
+		result = mvsum(cbasis(er,true,false,0.5*scl),cbasis(er,false,true,scl))
+	elseif a.eb[l] == a.ep == true
+		result = mvsum(cbasis(er,true,true,scl),cbasis(er,false,false,scl))
+	else
+		result = cmultvec(cbasis(er, false, false, scl))
+	end
+	return result
+end
+#########################################################
+function cbtopb(A::cmultvec)
+	l = length(A.comp)
+	X = Vector{pbasis}(2*l)
+	eb = Vector{Bool}(m+1)
+	fill!(eb, false)
+	for i=1:l
+		if length(cbtopb(A.comp[i]).comp) == 2
+			X[2*i-1] = cbtopb(A.comp[i]).comp[1]
+			X[2*i] = cbtopb(A.comp[i]).comp[2]
+		elseif length(cbtopb(A.comp[i]).comp) == 1
+			X[2*i-1] = cbtopb(A.comp[i]).comp[1]
+			X[2*i] = pbasis(eb,false,0.0)
+		else
+			error("Unexpected error")
 		end
 	end
-	p = cmultvec(reshape(AB,l*m))
-	p = reduct(p)
-	result = remove(p, 0)
-	if length(result.comp) != 0
-		return result
-	else
-		return cmultvec([cbasis(id,false, false, 0.0)])
+	return reduct(pmultvec(X))
+end
+#########################################################
+function pbtocb(A::pmultvec)
+	l = length(A.comp)
+	X = Vector{cbasis}(2*l)
+	m = length(A.comp[1].eb)
+
+	eb = Vector{Bool}(m+1)
+	fill!(eb, false)
+	for i=1:l
+		if length(pbtocb(A.comp[i]).comp) == 2
+			X[2*i-1] = pbtocb(A.comp[i]).comp[1]
+			X[2*i] = pbtocb(A.comp[i]).comp[2]
+		elseif length(pbtocb(A.comp[i]).comp) == 1
+			X[2*i-1] = pbtocb(A.comp[i]).comp[1]
+			X[2*i] = cbasis(id,false,false,0.0)
+		else
+			error("Unexpected error")
+		end
 	end
+	return reduct(cmultvec(X))
+end
+#########################################################
+function geoprod(a::cbasis, b::cbasis)
+	A = cbtopb(a)
+	B = cbtopb(b)
+	AB = geoprod(A,B)
+	return pbtocb(AB)
+end
+#########################################################
+function Base.:∘(a::cbasis, b::cbasis)
+    return geoprod(a,b)
+end
+function Base.:∘(a::Number, b::cbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+function Base.:*(a::Number, b::cbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function inner(a::cbasis, b::cbasis)
+	A = cbtopb(a)
+	B = cbtopb(b)
+	AB = inner(A,B)
+	return pbtocb(AB)
+end
+#########################################################
+function Base.:⋅(a::cbasis, b::cbasis)
+    return inner(a,b)
+end
+#########################################################
+function outer(a::cbasis, b::cbasis)
+	A = cbtopb(a)
+	B = cbtopb(b)
+	AB = outer(A,B)
+	return pbtocb(AB)
+end
+#########################################################
+function Base.:^(a::cbasis, b::cbasis)
+    return outer(a,b)
+end
+#########################################################
+function scalar(a::cbasis, b::cbasis)
+	A = cbtopb(a)
+	B = cbtopb(b)
+	AB = scalar(A,B)
+	return pbtocb(AB)
+end
+#########################################################
+function Base.:*(a::cbasis, b::cbasis)
+    return scalar(a,b)
+end
+#########################################################
+"""
+```
+cbtore(a::cbasis)
+```
+Auxiliary function.
+"""
+function cbtore(a::cbasis)
+	l = length(a.er)
+	e = Vector{Bool}(l+2)
+	for i=1:l
+		e[i] = a.er[i]
+	end
+	e[l+1] = a.ei
+	e[l+2] = a.eo
+	b = kbasis(e, a.scl)
+	return b
+end
+#########################################################
+"""
+```
+retocb(a::kbasis)
+```
+Auxiliary function.
+"""
+function retocb(a::kbasis)
+	l = length(a.e)
+	er = Vector{Bool}(l-2)
+	for i=1:l-2
+		er[i] = a.e[i]
+	end
+	ei = a.e[l-1]
+	eo = a.e[l]
+	b = cbasis(er, ei, eo, a.scl)
+	return b
+end
+#########################################################
+function geoprod(A::cmultvec,B::cmultvec)
+	X = cbtopb(A)
+	Y = cbtopb(B)
+	XY = geoprod(X,Y)
+	return pbtocb(XY)
 end
 #########################################################
 function Base.:∘(A::cmultvec,B::cmultvec)
@@ -2115,163 +2140,37 @@ function Base.:*(a::Number,B::cmultvec)
 	return C
 end
 #########################################################
-function inner(A::cmultvec, B::cmultvec)
-	l = length(A.comp)
-	m = length(B.comp)
-	AB = Matrix{cbasis}(l,m)
-	for i=1:l
-		for j=1:m
-			AB[i,j] = inner(A.comp[i], B.comp[j])
-		end
-	end
-	p = cmultvec(reshape(AB,l*m))
-	p = reduct(p)
-	result = remove(p, 0)
-	if length(result.comp) != 0
-		return result
-	else
-		return cmultvec([cbasis(id,false, false, 0.0)])
-	end
+function inner(A::cmultvec,B::cmultvec)
+	X = cbtopb(A)
+	Y = cbtopb(B)
+	XY = inner(X,Y)
+	return pbtocb(XY)
 end
 #########################################################
 function Base.:⋅(A::cmultvec,B::cmultvec)
     return inner(A,B)
 end
 #########################################################
-function outer(A::cmultvec, B::cmultvec)
-	l = length(A.comp)
-	m = length(B.comp)
-	AB = Matrix{cbasis}(l,m)
-	for i=1:l
-		for j=1:m
-			AB[i,j] = outer(A.comp[i], B.comp[j])
-		end
-	end
-	p = cmultvec(reshape(AB,l*m))
-	p = reduct(p)
-	result = remove(p, 0)
-	if length(result.comp) != 0
-		return result
-	else
-		return cmultvec([cbasis(id,false, false, 0.0)])
-	end
+function outer(A::cmultvec,B::cmultvec)
+	X = cbtopb(A)
+	Y = cbtopb(B)
+	XY = outer(X,Y)
+	return pbtocb(XY)
 end
 #########################################################
 function Base.:^(A::cmultvec,B::cmultvec)
     return outer(A,B)
 end
 #########################################################
-function scalar(A::cmultvec, B::cmultvec)
-	l = length(A.comp)
-	m = length(B.comp)
-	AB = Matrix{cbasis}(l,m)
-	for i=1:l
-		for j=1:m
-			AB[i,j] = bscalar(A.comp[i], B.comp[j])
-		end
-	end
-	p = cmultvec(reshape(AB,l*m))
-	p = reduct(p)
-	result = remove(p, 0)
-	if length(result.comp) != 0
-		return result.comp[1].scl
-	else
-		return 0.0
-	end
+function scalar(A::cmultvec,B::cmultvec)
+	X = cbtopb(A)
+	Y = cbtopb(B)
+	XY = scalar(X,Y)
+	return pbtocb(XY)
 end
 #########################################################
 function Base.:*(A::cmultvec,B::cmultvec)
     return scalar(A,B)
-end
-#########################################################
-"""
-```
-pbtocb(a::pbasis)
-```
-Auxiliary function.
-"""
-function pbtocb(a::pbasis)
-	l = length(a.eb)
-	eb = fill!(Vector{Bool}(l-1), false)
-	for i=1:l-1
-		eb[i] = a.eb[i]
-	end
-	a2 = cbasis(eb, false, false, a.scl)
-	aux1 = cmultvec([cbasis(id, false, false, 1.0)])
-	aux2 = cmultvec([cbasis(id, false, false, 1.0)])
-	f = 0
-	if a.eb[l] == true
-		aux1 = cmultvec([cbasis(id, true, false, 0.5), cbasis(id,false, true, -1.0)])
-		f = 1
-	end
-	if a.ep == true
-		aux2 = cmultvec([cbasis(id, true, false, 0.5), cbasis(id, false, true, 1.0)])
-		f = 1
-	end
-	b = cbasis(eb, false, false, a.scl)
-	if f == 1
-		b = cmultvec([b])
-		p1 = geoprod(aux1, aux2)
-		return geoprod(b, p1)
-	else
-		return b
-	end
-end
-#########################################################
-function copy(a::cbasis)
-	er = copy(a.er)
-	ei = copy(a.ei)
-	eo = copy(a.eo)
-	scl = copy(a.scl)
-	return cbasis(er,ei,eo,scl)
-end
-#########################################################
-"""
-```
-pvtocv(A::pmultvec)
-```
-Auxiliary function.
-"""
-function pvtocv(A::pmultvec)
-	l = length(A.comp)
-	B = Vector{Any}(l)
-	for i=1:l
-		aux = pbtocb(A.comp[i])
-		if typeof(aux) == cbasis
-			B[i] = aux
-		else
-			B[i] = cbasis(id, false,false, 0.0)
-			B = vcat(B, aux.comp)
-		end
-	end
-	B = cmultvec(B)
-	B = reduct(B)
-	return B
-end
-#########################################################
-"""
-```
-cvtopv(A::cmultvec)
-```
-Auxiliary function.
-"""
-function cvtopv(A::cmultvec)
-	l = length(A.comp)
-	m = length(A.comp[1].er)
-	eb = fill!(Vector{Bool}(m+1), false)
-	B = Vector{pbasis}(l)
-	for i=1:l
-		aux = cbtopb(A.comp[i])
-		if typeof(aux) == pbasis
-			B[i] = aux
-		else
-			B[i] = pbasis(eb,false, 0.0)
-			B = vcat(B, aux.comp)
-		end
-	end
-	B = pmultvec(B)
-	B = reduct(B)
-	return pmultvec(B)
 end
 #########################################################
 """
@@ -2389,6 +2288,7 @@ end
 """
 ```
 S(x::Vector{Float64})
+S(X::kmultvec)
 ```
 The stereographic embedding of Euclidean space.
 
@@ -2406,34 +2306,44 @@ function S(x::Vector{Float64})
 	return euctoga(X)
 end
 #########################################################
+function S(X::kmultvec)
+	x = mvectovec([X])
+	l = length(x)
+	y = Vector{Float64}(l)
+	for i=1:l
+		y[i] = x[i]
+	end
+	return S(y)
+end
+#########################################################
 """
 ```
-H(x::Vector{Float64})
+Hm(x::Vector{Float64})
 ```
 Auxiliary function.
 """
-function H(x::Vector{Float64})
+function Hm(x::Vector{Float64})
 	l = length(x)
 	y = euctoga(x)
 	X = Vector{pbasis}(l+1)
 	for i=1:l
 		X[i] = kbtopb(y.comp[i])
 	end
-	m = length(S.comp[1].e)
+	m = length(id)
 	ide = Vector{Bool}(m+1)
 	fill!(ide, false)
 	X[l+1] = pbasis(ide, true, 1.0)
 	return pmultvec(X)
 end
 #########################################################
-function H(S::kmultvec)
+function Hm(S::kmultvec)
 	l = length(S.comp)
 	X = Vector{pbasis}(l+1)
 	for i=1:l
 		X[i] = kbtopb(S.comp[i])
 	end
-	m = length(S.comp[1].e)
-	ide = Vector{Bool}(m)
+	m = length(id)
+	ide = Vector{Bool}(m+1)
 	fill!(ide, false)
 	X[l+1] = pbasis(ide, true, 1.0)
 	return pmultvec(X)
@@ -2448,7 +2358,7 @@ Conformal embedding of a Euclidean vector into a vector of Gp+1,1 with new basis
 function pconformal(x::Vector{Float64})
 	x2 = vecdot(x,x)
 	a = 0.5*(x2 + 1)
-	X = H(S(x))
+	X = Hm(S(x))
 	l = length(X.comp)
 	for i=1:l
 		X.comp[i].scl = (X.comp[i].scl)*a
@@ -2500,12 +2410,12 @@ Conformal embedding of a Euclidean vector into a vector of Gp+1,1 with new basis
 function conformal(x::Vector{Float64})
 	x2 = vecdot(x,x)
 	a = 0.5*(x2 + 1)
-	X = H(S(x))
+	X = Hm(S(x))
 	l = length(X.comp)
 	for i=1:l
 		X.comp[i].scl = (X.comp[i].scl)*a
 	end
-	return pvtocv(X)
+	return pbtocb(X)
 end
 #########################################################
 """
@@ -2515,9 +2425,9 @@ iconformal(X::cmultvec)
 The inverse of "conformal" function.
 """
 function iconformal(X::cmultvec)
-	Y = cvtopv(X)
+	Y = cbtopb(X)
 	Y = ipconformal(Y)
-	return pvtocv(Y)
+	return pbtocb(Y)
 end
 #########################################################
 """
@@ -2530,7 +2440,7 @@ function mvectovec(X::Vector{cmultvec})
 	l = length(X)
 	Y = Vector{pmultvec}(l)
 	for i=1:l
-		Y[i] = cvtopv(X[i])
+		Y[i] = cbtopb(X[i])
 	end
 	return mvectovec(Y)
 end
@@ -2558,12 +2468,6 @@ function show(io::IO, A::cblade)
 	end
 end
 #########################################################
-"""
-```
-bltomv(A::cblade)
-```
-Auxiliary function.
-"""
 function bltomv(A::cblade)
 	l = length(A.conj)
 	X = A.conj[1]
@@ -2656,7 +2560,7 @@ function cbltopbl(A::cblade)
 	l = length(A.conj)
 	V = Vector{pmultvec}(l)
 	for i=1:l
-		V[i] = cvtopv(A.conj[i])
+		V[i] = cbtopb(A.conj[i])
 	end
 	B = pblade(V)
 	return B
@@ -2672,7 +2576,7 @@ function pbltocbl(A::pblade)
 	l = length(A.conj)
 	V = Vector{cmultvec}(l)
 	for i=1:l
-		V[i] = pvtocv(A.conj[i])
+		V[i] = pbtocb(A.conj[i])
 	end
 	B = cblade(V)
 	return B
@@ -2727,5 +2631,621 @@ function inverse(A::cblade)
 	return X
 end
 #########################################################
-
+function Base.:∘(a::kbasis,B::kmultvec)
+	A = kmultvec(a)
+	return A ∘ B
 end
+#########################################################
+function Base.:∘(A::kmultvec,b::kbasis)
+	B = kmultvec(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::kbasis,B::kmultvec)
+	A = kmultvec(a)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(A::kmultvec,b::kbasis)
+	B = kmultvec(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::kbasis,B::kmultvec)
+	A = kmultvec(a)
+	return A ^ B
+end
+#########################################################
+function Base.:^(A::kmultvec,b::kbasis)
+	B = kmultvec(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::kbasis,B::kmultvec)
+	A = kmultvec(a)
+	return A * B
+end
+#########################################################
+function Base.:*(A::kmultvec,b::kbasis)
+	B = kmultvec(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::kbasis,B::kmultvec)
+	A = kmultvec(a)
+	return A + B
+end
+#########################################################
+function Base.:+(A::kmultvec,b::kbasis)
+	B = kmultvec(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::kbasis,B::kmultvec)
+	A = kmultvec(a)
+	return A - B
+end
+#########################################################
+function Base.:-(A::kmultvec,b::kbasis)
+	B = kmultvec(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::kblade,B::kmultvec)
+	A = bltomv(a)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(A::kmultvec,b::kblade)
+	B = bltomv(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::kblade,B::kmultvec)
+	A = bltomv(a)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(A::kmultvec,b::kblade)
+	B = bltomv(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::kblade,B::kmultvec)
+	A = bltomv(a)
+	return A ^ B
+end
+#########################################################
+function Base.:^(A::kmultvec,b::kblade)
+	B = bltomv(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::kblade,B::kmultvec)
+	A = bltomv(a)
+	return A * B
+end
+#########################################################
+function Base.:*(A::kmultvec,b::kblade)
+	B = bltomv(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::kblade,B::kmultvec)
+	A = bltomv(a)
+	return A + B
+end
+#########################################################
+function Base.:+(A::kmultvec,b::kblade)
+	B = bltomv(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::kblade,B::kmultvec)
+	A = bltomv(a)
+	return A - B
+end
+#########################################################
+function Base.:-(A::kmultvec,b::kblade)
+	B = bltomv(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::kblade,b::kbasis)
+	A = bltomv(a)
+	B = kmultvec(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(a::kbasis,b::kblade)
+	A = kmultvec(a)
+	B = bltomv(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::kblade,b::kbasis)
+	A = bltomv(a)
+	B = kmultvec(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(a::kbasis,b::kblade)
+	A = kmultvec(a)
+	B = bltomv(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::kblade,b::kbasis)
+	A = bltomv(a)
+	B = kmultvec(b)
+	return A ^ B
+end
+#########################################################
+function Base.:^(a::kbasis,b::kblade)
+	A = kmultvec(a)
+	B = bltomv(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::kblade,b::kbasis)
+	A = bltomv(a)
+	B = kmultvec(b)
+	return A * B
+end
+#########################################################
+function Base.:*(a::kbasis,b::kblade)
+	A = kmultvec(a)
+	B = bltomv(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::kblade,b::kbasis)
+	A = bltomv(a)
+	B = kmultvec(b)
+	return A + B
+end
+#########################################################
+function Base.:+(a::kbasis,b::kblade)
+	A = kmultvec(a)
+	B = bltomv(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::kblade,b::kbasis)
+	A = bltomv(a)
+	B = kmultvec(b)
+	return A - B
+end
+#########################################################
+function Base.:-(a::kbasis,b::kblade)
+	A = kmultvec(a)
+	B = bltomv(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::pbasis,B::pmultvec)
+	A = pmultvec(a)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(A::pmultvec,b::pbasis)
+	B = pmultvec(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::pbasis,B::pmultvec)
+	A = pmultvec(a)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(A::pmultvec,b::pbasis)
+	B = pmultvec(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::pbasis,B::pmultvec)
+	A = pmultvec(a)
+	return A ^ B
+end
+#########################################################
+function Base.:^(A::pmultvec,b::pbasis)
+	B = pmultvec(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::pbasis,B::pmultvec)
+	A = pmultvec(a)
+	return A * B
+end
+#########################################################
+function Base.:*(A::pmultvec,b::pbasis)
+	B = pmultvec(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::pbasis,B::pmultvec)
+	A = pmultvec(a)
+	return A + B
+end
+#########################################################
+function Base.:+(A::pmultvec,b::pbasis)
+	B = pmultvec(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::pbasis,B::pmultvec)
+	A = pmultvec(a)
+	return A - B
+end
+#########################################################
+function Base.:-(A::pmultvec,b::pbasis)
+	B = pmultvec(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::pblade,B::pmultvec)
+	A = bltomv(a)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(A::pmultvec,b::pblade)
+	B = bltomv(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::pblade,B::pmultvec)
+	A = bltomv(a)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(A::pmultvec,b::pblade)
+	B = bltomv(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::pblade,B::pmultvec)
+	A = bltomv(a)
+	return A ^ B
+end
+#########################################################
+function Base.:^(A::pmultvec,b::pblade)
+	B = bltomv(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::pblade,B::pmultvec)
+	A = bltomv(a)
+	return A * B
+end
+#########################################################
+function Base.:*(A::pmultvec,b::pblade)
+	B = bltomv(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::pblade,B::pmultvec)
+	A = bltomv(a)
+	return A + B
+end
+#########################################################
+function Base.:+(A::pmultvec,b::pblade)
+	B = bltomv(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::pblade,B::pmultvec)
+	A = bltomv(a)
+	return A - B
+end
+#########################################################
+function Base.:-(A::pmultvec,b::pblade)
+	B = bltomv(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::pblade,b::pbasis)
+	A = bltomv(a)
+	B = pmultvec(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(a::pbasis,b::pblade)
+	A = pmultvec(a)
+	B = bltomv(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::pblade,b::pbasis)
+	A = bltomv(a)
+	B = pmultvec(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(a::pbasis,b::pblade)
+	A = pmultvec(a)
+	B = bltomv(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::pblade,b::pbasis)
+	A = bltomv(a)
+	B = pmultvec(b)
+	return A ^ B
+end
+#########################################################
+function Base.:^(a::pbasis,b::pblade)
+	A = pmultvec(a)
+	B = bltomv(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::pblade,b::pbasis)
+	A = bltomv(a)
+	B = pmultvec(b)
+	return A * B
+end
+#########################################################
+function Base.:*(a::pbasis,b::pblade)
+	A = pmultvec(a)
+	B = bltomv(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::pblade,b::pbasis)
+	A = bltomv(a)
+	B = pmultvec(b)
+	return A + B
+end
+#########################################################
+function Base.:+(a::pbasis,b::pblade)
+	A = pmultvec(a)
+	B = bltomv(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::pblade,b::pbasis)
+	A = bltomv(a)
+	B = pmultvec(b)
+	return A - B
+end
+#########################################################
+function Base.:-(a::pbasis,b::pblade)
+	A = pmultvec(a)
+	B = bltomv(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::cbasis,B::cmultvec)
+	A = cmultvec(a)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(A::cmultvec,b::cbasis)
+	B = cmultvec(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::cbasis,B::cmultvec)
+	A = cmultvec(a)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(A::cmultvec,b::cbasis)
+	B = cmultvec(b)
+	return A ⋅ B
+end
+################c#########################################
+function Base.:^(a::cbasis,B::cmultvec)
+	A = cmultvec(a)
+	return A ^ B
+end
+#########################################################
+function Base.:^(A::cmultvec,b::cbasis)
+	B = cmultvec(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::cbasis,B::cmultvec)
+	A = cmultvec(a)
+	return A * B
+end
+#########################################################
+function Base.:*(A::cmultvec,b::cbasis)
+	B = cmultvec(b)
+	return A * B
+end
+###################################################c#####
+function Base.:+(a::cbasis,B::cmultvec)
+	A = cmultvec(a)
+	return A + B
+end
+#########################################################
+function Base.:+(A::cmultvec,b::cbasis)
+	B = cmultvec(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::cbasis,B::cmultvec)
+	A = cmultvec(a)
+	return A - B
+end
+#########################################################
+function Base.:-(A::cmultvec,b::cbasis)
+	B = cmultvec(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::cblade,B::cmultvec)
+	A = bltomv(a)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(A::cmultvec,b::cblade)
+	B = bltomv(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::cblade,B::cmultvec)
+	A = bltomv(a)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(A::cmultvec,b::cblade)
+	B = bltomv(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::cblade,B::cmultvec)
+	A = bltomv(a)
+	return A ^ B
+end
+#########################################################
+function Base.:^(A::cmultvec,b::cblade)
+	B = bltomv(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::cblade,B::cmultvec)
+	A = bltomv(a)
+	return A * B
+end
+#########################################################
+function Base.:*(A::cmultvec,b::cblade)
+	B = bltomv(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::cblade,B::cmultvec)
+	A = bltomv(a)
+	return A + B
+end
+#########################################################
+function Base.:+(A::cmultvec,b::cblade)
+	B = bltomv(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::cblade,B::cmultvec)
+	A = bltomv(a)
+	return A - B
+end
+#########################################################
+function Base.:-(A::cmultvec,b::cblade)
+	B = bltomv(b)
+	return A - B
+end
+#########################################################
+function Base.:∘(a::cblade,b::cbasis)
+	A = bltomv(a)
+	B = cmultvec(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:∘(a::cbasis,b::cblade)
+	A = cmultvec(a)
+	B = bltomv(b)
+	return A ∘ B
+end
+#########################################################
+function Base.:⋅(a::cblade,b::cbasis)
+	A = bltomv(a)
+	B = cmultvec(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:⋅(a::cbasis,b::cblade)
+	A = cmultvec(a)
+	B = bltomv(b)
+	return A ⋅ B
+end
+#########################################################
+function Base.:^(a::cblade,b::cbasis)
+	A = bltomv(a)
+	B = cmultvec(b)
+	return A ^ B
+end
+#########################################################
+function Base.:^(a::cbasis,b::cblade)
+	A = cmultvec(a)
+	B = bltomv(b)
+	return A ^ B
+end
+#########################################################
+function Base.:*(a::cblade,b::cbasis)
+	A = bltomv(a)
+	B = cmultvec(b)
+	return A * B
+end
+#########################################################
+function Base.:*(a::cbasis,b::cblade)
+	A = cmultvec(a)
+	B = bltomv(b)
+	return A * B
+end
+#########################################################
+function Base.:+(a::cblade,b::cbasis)
+	A = bltomv(a)
+	B = cmultvec(b)
+	return A + B
+end
+#########################################################
+function Base.:+(a::cbasis,b::cblade)
+	A = cmultvec(a)
+	B = bltomv(b)
+	return A + B
+end
+#########################################################
+function Base.:-(a::cblade,b::cbasis)
+	A = bltomv(a)
+	B = cmultvec(b)
+	return A - B
+end
+#########################################################
+function Base.:-(a::cbasis,b::cblade)
+	A = cmultvec(a)
+	B = bltomv(b)
+	return A - B
+end
+#########################################################
+function Base.:*(a::Number,b::Tuple{Vector{Bool},Bool})
+	return pb(b[1], b[2],a)
+end
+#########################################################
+function Base.:*(a::Number,b::Tuple{Vector{Bool},Bool, Bool})
+	return cb(b[1], b[2], b[3], a)
+end
+#########################################################
+function H(X::Vector{Float64})
+	l = length(X)
+	Y = Vector{Float64}(l+1)
+	for i=1:l
+		Y[i] = X[i]
+	end
+	Y[l+1] = 1.0
+	return euctoga(Y)
+end
+#########################################################
+function H(X::kmultvec)
+	Y = mvectovec([X])
+	l = length(Y)
+	Z = Vector{Float64}(l)
+	for i=1:l
+		Z[i] = Y[i]
+	end
+	return H(Z)
+end
+#########################################################
+function mvreverse(a::cbasis)
+	b = cbtopb(a)
+	B = mvreverse(b)
+	return pbtocb(B)
+end
+#########################################################
+function mvreverse(a::cmultvec)
+	b = cbtopb(a)
+	B = mvreverse(b)
+	return pbtocb(B)
+end
+#########################################################
+
+end #module
