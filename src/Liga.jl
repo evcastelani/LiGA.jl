@@ -1,48 +1,25 @@
-module Liga
-
-# package code goes here
-
-include("layout.jl");
-
-export layout
-
-import Base.show, Base.copy, Base.subtypes, Base.Random.rand
+import Base.show, Base.copy, Base.subtypes
 importall Base.Operators
-
-
-export
-	   kbasis, pbasis, cbasis,
-	   kmultvec, pmultvec, cmultvec,
-	   kblade, pblade, cbltopb,
-       kb,kmultvec,
-       grade,mvectovec,
-       kblade, copy,
-	   geoprod,inner,
-	   outer, scalar,
-	   bscalar,mvsum, 
-       mvreverse,dual,
-	   magnitude,remove,
-       reduct,projection,
-       bltomv,rejection,
-	   show,pb,
-       pmultvec,kbtopb,
-       conjugate,prtore,
-       retopr, plen,
-	   mvtopmv,pblade,
-	   cb,cmultvec,
-       cbtopb,cbtore,
-	   retocb, pbtocb,
-	   pvtocv,cvtopv,
-	   retoaffin,affine,
-	   iretoaffin,euctoga,
-	   S,H,	
-	   conformal,ipconformal,
-	   conformal,iconformal,
-	   cblade, cbltopbl,
-	   pbltocbl,
-	   kbasis,pbasis,cbasis	
-
 #########################################################
+export
+#TYPES
+kbasis, kmultvec, kblade,
+pbasis, pmultvec, pblade,
+cbasis, cmultvec, cblade
+
+#FUNCTIONS
+kb, grade, mvectovec, copy,
+geoprod, inner, outer, scalar,
+bscalar, mvsum, mvreverse, dual,
+magnitude, remove, reduct, bltomv,
+inverse, projection, rejection,
+pb, kbtopb, conjugate, prtore,
+retopr, plen, mvtopmv, cb,
+cbtopb, pbtocb, cbtore, retocb,
+retoaffin, affine, iretoaffin,
+euctoga, S, Hm, H, ovector, iH, irH,
+pconformal, ipconformal, conformal,
+iconformal, cbltopbl, pbltocbl
 #########################################################
 """
 ```
@@ -456,6 +433,21 @@ Returns the magnitude of the input element, that is.
 function magnitude(a::kbasis)
 	b = mvreverse(a)
 	return sqrt(scalar(a,b))
+end
+#########################################################
+function ovector(X::kmultvec)
+	l = length(X.comp)
+	f = 1
+	for i=1:l
+		if grade(X.comp[i]) != 1
+			f = 0
+		end
+	end
+	if f == 1
+		return true
+	else
+		return false
+	end
 end
 #########################################################
 """
@@ -923,6 +915,79 @@ function show(io::IO, X::kblade)
 	print(io, "($(X.conj[l]))")
 end
 #########################################################
+function H(X::Vector{Float64})
+	l = length(X)
+	Y = Vector{Float64}(l+1)
+	for i=1:l
+		Y[i] = X[i]
+	end
+	Y[l+1] = 1.0
+	return euctoga(Y)
+end
+#########################################################
+function H(X::kmultvec)
+	Y = mvectovec([X])
+	l = length(Y)
+	Z = Vector{Float64}(l)
+	for i=1:l
+		Z[i] = Y[i]
+	end
+	return H(Z)
+end
+#########################################################
+function iH(X::kmultvec)
+	Y = reduct(X)
+	l = length(Y.comp)
+	f = 0
+	if l != 0
+		m = length(Y.comp[1].e)
+		en = fill!(Vector{Bool}(m), false)
+		en[m] = true
+		E = kbasis(en, 1.0)
+		Z = Vector{kbasis}(l)
+		ide = fill!(Vector{Bool}(m-1), false)
+		fill!(Z, kbasis(ide, 0.0))
+	end
+	for i=1:l
+		if Y.comp[i].e[m] == true && Y.comp[i].scl != 0.0
+			f = 1
+		end
+	end
+	if ovector(Y) == true && f == 1
+		sl = ((Y ⋅ E).comp[1].scl)^(-1)
+		for i=1:l
+			Y.comp[i].scl = sl * Y.comp[i].scl
+		end
+		for i=1:l
+			e = fill!(Vector{Bool}(m-1), false)
+			if Y.comp[i].e[m] == false
+				for j=1:m-1
+					if Y.comp[i].e[j] == true
+						e[j] = true
+					end
+				end
+				Z[i] = kbasis(e, Y.comp[i].scl)
+			end
+		end
+		return reduct(kmultvec(Z))
+	elseif ovector(Y) == true && f == 0
+		error("Null e(k+1) component error")
+	else
+		error("Grade error")
+	end
+end
+#########################################################
+function irH(X::kmultvec)
+	Y = iH(X)
+	l = length(Y.comp)
+	Z = mvectovec([Y])
+	Z2 = Vector{Float64}(l)
+	for i=1:l
+		Z2[i] = Z[i]
+	end
+	return Z2
+end
+#########################################################
 """
 ```
 pbasis(a::Vector{Bool}, b::Bool, c::Number)
@@ -1254,6 +1319,21 @@ function mvtopmv(A::kmultvec)
 		X[i] = kbtopb(A.comp[i])
 	end
 	return pmultvec(X)
+end
+#########################################################
+function ovector(X::pmultvec)
+	l = length(X.comp)
+	f = 1
+	for i=1:l
+		if grade(X.comp[i]) != 1
+			f = 0
+		end
+	end
+	if f == 1
+		return true
+	else
+		return false
+	end
 end
 #########################################################
 function remove(A::pmultvec, b::Number)
@@ -1826,6 +1906,21 @@ function copy(A::cmultvec)
 	return cmultvec(X)
 end
 #########################################################
+function ovector(X::cmultvec)
+	l = length(X.comp)
+	f = 1
+	for i=1:l
+		if grade(X.comp[i]) != 1
+			f = 0
+		end
+	end
+	if f == 1
+		return true
+	else
+		return false
+	end
+end
+#########################################################
 function mvsum(a::cbasis, b::cbasis)
 	l = length(a.er)
 	er = Vector{Bool}(l)
@@ -1986,6 +2081,7 @@ end
 function cbtopb(A::cmultvec)
 	l = length(A.comp)
 	X = Vector{pbasis}(2*l)
+	m = length(A.comp[1].er)
 	eb = Vector{Bool}(m+1)
 	fill!(eb, false)
 	for i=1:l
@@ -3215,26 +3311,6 @@ function Base.:*(a::Number,b::Tuple{Vector{Bool},Bool, Bool})
 	return cb(b[1], b[2], b[3], a)
 end
 #########################################################
-function H(X::Vector{Float64})
-	l = length(X)
-	Y = Vector{Float64}(l+1)
-	for i=1:l
-		Y[i] = X[i]
-	end
-	Y[l+1] = 1.0
-	return euctoga(Y)
-end
-#########################################################
-function H(X::kmultvec)
-	Y = mvectovec([X])
-	l = length(Y)
-	Z = Vector{Float64}(l)
-	for i=1:l
-		Z[i] = Y[i]
-	end
-	return H(Z)
-end
-#########################################################
 function mvreverse(a::cbasis)
 	b = cbtopb(a)
 	B = mvreverse(b)
@@ -3247,5 +3323,3 @@ function mvreverse(a::cmultvec)
 	return pbtocb(B)
 end
 #########################################################
-
-end #module
