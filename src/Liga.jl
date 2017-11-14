@@ -1,3 +1,5 @@
+include("layout.jl")
+module Liga
 import Base.show, Base.copy, Base.subtypes
 importall Base.Operators
 #########################################################
@@ -5,8 +7,7 @@ export
 #TYPES
 kbasis, kmultvec, kblade,
 pbasis, pmultvec, pblade,
-cbasis, cmultvec, cblade
-
+cbasis, cmultvec, cblade,
 #FUNCTIONS
 kb, grade, mvectovec, copy,
 geoprod, inner, outer, scalar,
@@ -3323,3 +3324,4 @@ function mvreverse(a::cmultvec)
 	return pbtocb(B)
 end
 #########################################################
+end
