@@ -21,6 +21,8 @@ It's important a previous contact with Geometric Algebra in theoretical aspects.
 1. Christian Perwass, *Geometric Algebra with Applications in Engineering*, 
 Springer Series in Geometry and Computing, 2009.
 
+2. Valter Soares Camargo, *Conformal Geometric Algebra and Distance Geometry*, (Doctoral Thesis).
+IMECC-UNICAMP, 2015. 
 
 
 ## Current Status
