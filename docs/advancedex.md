@@ -104,7 +104,7 @@ In sequence we have the code. This code can be downloaded [here](GA_dect.tar.gz)
 As result of example datafile-50-300-300-10.txt
 we have
 
-![figure_1.jpeg]
+![figure_1.jpeg](figure_1.jpeg)
 
 [1] Duda, Richard O., and Peter E. Hart. "Use of the Hough transformation to 
 detect lines and curves in pictures." Communications of the ACM 15.1 (1972): 11-15.
