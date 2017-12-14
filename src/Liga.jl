@@ -1,5 +1,3 @@
-
-
 module Liga
 import Base.show
 import Base.copy
@@ -20,7 +18,8 @@ cbtopb, pbtocb, cbtore, retocb,
 retoaffin, affine, iretoaffin,
 euctoga, S, Hm, H, ovector, iH, irH,
 pconformal, ipconformal, conformal,
-iconformal, cbltopbl, pbltocbl
+iconformal, cbltopbl, pbltocbl, ==,
+conftore
 
 
 #########################################################
@@ -28,22 +27,22 @@ iconformal, cbltopbl, pbltocbl
 #layout
 
 function arvore(v,niv,pos,lista,n)
-    if niv<=n 
+    if niv<=n
         if pos==0
             aux=copy(v)
-            aux[niv]=true 
+            aux[niv]=true
             niv=niv+1
             lista=push!(lista,aux)
-            lista=arvore(aux,niv,0,lista,n) 
-            lista=arvore(aux,niv,1,lista,n) 
-            
+            lista=arvore(aux,niv,0,lista,n)
+            lista=arvore(aux,niv,1,lista,n)
+
         else
             niv=niv+1
             aux=copy(v)
             lista=arvore(aux,niv,0,lista,n)
             lista=arvore(aux,niv,1,lista,n)
-            
-        end    
+
+        end
     end
     return lista
 end
@@ -53,13 +52,13 @@ function buildtree(n)
    lista=[v]
    for i in arvore(v,1,0,[v],n)[2:length(arvore(v,1,0,[v],n))]
         lista=push!(lista,i)
-   end     
+   end
    for i in arvore(v,1,1,[v],n)[2:length(arvore(v,1,1,[v],n))]
         lista=push!(lista,i)
    end
    return lista
 end
-""" This function is used to define the space to work 
+""" This function is used to define the space to work
 ## Example
 ```julia-repl
 julia> layout(3)
@@ -73,7 +72,7 @@ for v in bn
     s=find(x->x==true,v)
     if isempty(s)
         eval(parse("const id = $v"))
-    else     
+    else
         conc=string(s[1])
         for k=2:length(s)
             conc=string(conc,s[k])
@@ -431,11 +430,12 @@ function mvsum(a::kbasis, b::kbasis)
 end
 #########################################################
 function Base.:+(a::kbasis,b::kbasis)
-    return mvsum(a,b)
+    return mvsum(copy(a),copy(b))
 end
 function Base.:-(a::kbasis,b::kbasis)
-	b.scl = -b.scl
-	return mvsum(a,b)
+	c = copy(b)
+	c.scl = -c.scl
+	return mvsum(copy(a),c)
 end
 #########################################################
 """
@@ -577,18 +577,19 @@ function mvsum(A::kmultvec, B::kmultvec)
 end
 #########################################################
 function Base.:+(A::kmultvec,B::kmultvec)
-    return mvsum(A,B)
+    return mvsum(copy(A),copy(B))
 end
 function Base.:-(A::kmultvec,B::kmultvec)
 	l=length(B.comp)
+	C = copy(B)
 	if l != 0
 		for i=1:l
-			B.comp[i].scl = -B.comp[i].scl
+			C.comp[i].scl = -C.comp[i].scl
 		end
 	else
-		B = kmultvec([kbasis(id, false, 0.0)])
+		C = kmultvec([kbasis(id, false, 0.0)])
 	end
-	return mvsum(A,B)
+	return mvsum(copy(A),C)
 end
 #########################################################
 """
@@ -842,11 +843,11 @@ function mvsum(A::kblade, B::kblade)
 end
 #########################################################
 function Base.:+(A::kblade,B::kblade)
-    return mvsum(A,B)
+    return mvsum(copy(A),copy(B))
 end
 function Base.:-(A::kblade,B::kblade)
-	AA = bltomv(A)
-	BB = bltomv(B)
+	AA = bltomv(copy(A))
+	BB = bltomv(copy(B))
 	l = length(BB.comp)
 	for i=1:l
 		BB.comp[i].scl = -BB.comp[i].scl
@@ -913,7 +914,7 @@ projection(A::pblade, N::pblade)
 Returns the projection of the blade A onto the blade N.
 """
 function projection(A::kblade, N::kblade)
-	N2 = inverse(N)x
+	N2 = inverse(N)
 	result = geoprod(inner(A, N2), bltomv(N))
 	return result
 end
@@ -1274,12 +1275,12 @@ function mvsum(a::pbasis, b::pbasis)
 end
 #########################################################
 function Base.:+(a::pbasis,b::pbasis)
-    return mvsum(a,b)
+    return mvsum(copy(a),copy(b))
 end
 function Base.:-(a::pbasis,b::pbasis)
 	c = copy(b)
 	c.scl = -c.scl
-	return mvsum(a,c)
+	return mvsum(copy(a),c)
 end
 #########################################################
 function mvreverse(a::pbasis)
@@ -1454,23 +1455,29 @@ function mvsum(A::pmultvec, B::pmultvec)
 		AB[i] = retopr(AB2.comp[i])
 	end
 	AB = pmultvec(AB)
-	return remove(AB, 0.0)
+	result = remove(AB, 0.0)
+	if length(result.comp) != 0
+		return result
+	else
+		return pmultvec(pbasis(id,false, 0.0))
+	end
 end
 #########################################################
 function Base.:+(A::pmultvec,B::pmultvec)
-    return mvsum(A,B)
+    return mvsum(copy(A),copy(B))
 end
 function Base.:-(A::pmultvec,B::pmultvec)
 	l=length(B.comp)
+	C = copy(B)
 	if l != 0
 		for i=1:l
-			B.comp[i].scl = -B.comp[i].scl
+			C.comp[i].scl = -C.comp[i].scl
 		end
 	else
-		eb = plen(B)
-		B = pmultvec([pbasis(eb, false, 0.0)])
+		eb = plen(C)
+		C = pmultvec([pbasis(eb, false, 0.0)])
 	end
-	return mvsum(A,B)
+	return mvsum(copy(A),C)
 end
 #########################################################
 function reduct(A::pmultvec)
@@ -1845,7 +1852,7 @@ function inverse(A::pblade)
 end
 #########################################################
 function projection(A::pblade, N::pblade)
-	X = inner(inner(A, inverse(N)), bltomv(N))
+	X = geoprod(inner(A, inverse(N)), bltomv(N))
 	return X
 end
 #########################################################
@@ -1999,11 +2006,12 @@ function mvsum(a::cbasis, b::cbasis)
 end
 #########################################################
 function Base.:+(a::cbasis, b::cbasis)
-    return mvsum(a,b)
+    return mvsum(copy(a),copy(b))
 end
 function Base.:-(a::cbasis, b::cbasis)
-	b.scl = - b.scl
-    return mvsum(a,b)
+	c = copy(b)
+	c.scl = - c.scl
+    return mvsum(copy(a),b)
 end
 #########################################################
 function remove(A::cmultvec, b::Number)
@@ -2058,22 +2066,28 @@ function mvsum(A::cmultvec, B::cmultvec)
 		AB[i] = retocb(AB2.comp[i])
 	end
 	AB = cmultvec(AB)
-	return remove(AB, 0.0)
+	result = remove(AB, 0.0)
+	if length(result.comp) != 0
+		return result
+	else
+		return cmultvec(cbasis(id,false,false, 0.0))
+	end
 end
 #########################################################
 function Base.:+(A::cmultvec,B::cmultvec)
-    return mvsum(A,B)
+    return mvsum(copy(A),copy(B))
 end
 function Base.:-(A::cmultvec,B::cmultvec)
 	l=length(B.comp)
+	C = copy(B)
 	if l != 0
 		for i=1:l
-			B.comp[i].scl = -B.comp[i].scl
+			C.comp[i].scl = -C.comp[i].scl
 		end
 	else
-		B = cmultvec([cbasis(id,false, false, 0.0)])
+		C = cmultvec([cbasis(id,false, false, 0.0)])
 	end
-	return mvsum(A,B)
+	return mvsum(copy(A),C)
 end
 #########################################################
 function reduct(A::cmultvec)
@@ -2703,11 +2717,11 @@ function mvsum(A::cblade,B::cblade)
 end
 #########################################################
 function Base.:+(A::cblade,B::cblade)
-	return mvsum(A,B)
+	return mvsum(copy(A),copy(B))
 end
 function Base.:-(A::cblade,B::cblade)
-	AA = bltomv(A)
-	BB = bltomv(B)
+	AA = bltomv(copy(A))
+	BB = bltomv(copy(B))
 	return AA-BB
 end
 #########################################################
@@ -3388,28 +3402,812 @@ function mvreverse(a::cmultvec)
 	return pbtocb(B)
 end
 #########################################################
+function dual(a::cbasis)
+    b = cbtopb(a)
+    c = dual(b)
+    return pbtocb(c)
+end
+#########################################################
+function dual(X::cmultvec)
+    Y = cbtopb(X)
+    Z = dual(Y)
+    return pbtocb(Z)
+end
+#########################################################
+function dual(A::cblade)
+    B = cbltopbl(A)
+    C = dual(B)
+    return pbltocbl(C)
+end
+#########################################################
+function kblade(a::kbasis)
+	l = length(a.e)
+	m = grade(a)
+	e = Vector{Bool}(l)
+	fill!(e,false)
+	A = Vector{kmultvec}(l)
+	for i=1:l
+		if a.e[i] == true
+			e[i] = true
+			A[i] = copy(kmultvec([kbasis(e,1.0)]))
+		else
+			A[i] = copy(kmultvec([kbasis(e,0.0)]))
+		end
+		e[i] = false
+	end
+	B = Vector{kmultvec}(m)
+	aux = 1
+	for i=1:m
+		for j=l:(-1):(i)
+			if A[j].comp[1].scl != 0.0
+				B[i] = A[j]
+				aux = j
+			end
+		end
+		A[aux] = copy(kmultvec([kbasis(e,0.0)]))
+	end
+	B[1].comp[1].scl = a.scl
+	return kblade(B)
+end
+#########################################################
+function pblade(a::pbasis)
+	l = length(a.eb)
+	m = grade(a)
+	e = Vector{Bool}(l)
+	fill!(e,false)
+	A = Vector{pmultvec}(l+1)
+	for i=1:l
+		if a.eb[i] == true
+			e[i] = true
+			A[i] = copy(pmultvec([pbasis(e,false,1.0)]))
+		else
+			A[i] = copy(pmultvec([pbasis(e,false,0.0)]))
+		end
+		e[i] = false
+	end
+	if a.ep == true
+		A[l+1] = copy(pmultvec([pbasis(e,true,1.0)]))
+	else
+		A[l+1] = copy(pmultvec([pbasis(e,false,0.0)]))
+	end
+	B = Vector{pmultvec}(m)
+	aux = 1
+	for i=1:m
+		for j=l+1:(-1):(i)
+			if A[j].comp[1].scl != 0.0
+				B[i] = A[j]
+				aux = j
+			end
+		end
+		A[aux] = copy(pmultvec([pbasis(e,false,0.0)]))
+	end
+	B[1].comp[1].scl = a.scl
+	return pblade(B)
+end
+#########################################################
+function projection(a::kbasis, N::kblade)
+    A = kblade(a)
+    return (A ⋅ inverse(N)) ∘ N
+end
+#########################################################
+function projection(a::kbasis, n::kbasis)
+    A = kblade(a)
+    N = kblade(n)
+    return (A ⋅ inverse(N)) ∘ N
+end
+#########################################################
+function projection(X::kmultvec, N::kblade)
+    l = length(X.comp)
+    A = Vector{kbasis}(l)
+    for i=1:l
+        A[i] = projection(X.comp[i], N).comp[1]
+    end
+    A = kmultvec(A)
+    return reduct(A)
+end
+#########################################################
+function projection(X::kmultvec, n::kbasis)
+    N = kblade(n)
+    return projection(X,N)
+end
+#########################################################
+function projection(a::pbasis, N::pblade)
+	A = pblade(a)
+    return (A ⋅ inverse(N)) ∘ N
+end
+#########################################################
+function projection(a::pbasis, n::pbasis)
+    A = pblade(a)
+    N = pblade(n)
+    return (A ⋅ inverse(N)) ∘ N
+end
+#########################################################
+function projection(X::pmultvec, N::pblade)
+    l = length(X.comp)
+    A = Vector{pbasis}(l)
+    for i=1:l
+	        A[i] = projection(X.comp[i], N).comp[1]
+    end
+    A = pmultvec(A)
+    return reduct(A)
+end
+#########################################################
+function projection(X::pmultvec, n::pbasis)
+    N = pblade(n)
+    return projection(X,N)
+end
+#########################################################
+function projection(X::pmultvec, n::pmultvec)
+    N = pblade(n)
+    return projection(X,N)
+end
+#########################################################
+function projection(X::pbasis, n::pmultvec)
+    N = pblade([n])
+    return projection(X,N)
+end
+#########################################################
+function projection(X::pblade, n::pmultvec)
+    N = pblade([n])
+    return projection(X,N)
+end
+#########################################################
+function projection(a::cbasis, n::cbasis)
+    x = cbtopb(a)
+    y = cbtopb(n)
+    z = projection(x,y)
+    return pbtocb(z)
+end
+#########################################################
+function projection(a::cbasis, N::cblade)
+    x = cbtopb(a)
+    y = cbltopbl(N)
+    z = projection(x,y)
+    return pbtocb(z)
+end
+#########################################################
+function projection(X::cmultvec, N::cblade)
+    x = cbtopb(X)
+    y = cbltopbl(N)
+    z = projection(x,y)
+    return pbtocb(z)
+end
+#########################################################
+function projection(X::cmultvec, n::cbasis)
+    x = cbtopb(X)
+    y = cbtopb(n)
+    z = projection(x,y)
+    return pbtocb(z)
+end
+#########################################################
+function projection(X::cblade, N::cblade)
+    A = cbltopbl(X)
+    M = cbltopbl(N)
+    Z = projection(A,M)
+    return pbtocb(Z)
+end
+#########################################################
+function Base.:+(A::pblade,B::pblade)
+	return mvsum(copy(A),copy(B))
+end
+function Base.:-(A::pblade,B::pblade)
+	AA = bltomv(copy(A))
+	BB = bltomv(copy(B))
+	return AA-BB
+end
+#########################################################
+function Base.:∘(a::kbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:∘(A::kmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:∘(A::kblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:∘(a::pbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:∘(A::pmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:∘(A::pblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:∘(a::cbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:∘(A::cmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:∘(A::cblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:⋅(a::kbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:⋅(A::kmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:⋅(A::kblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:⋅(a::pbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:⋅(A::pmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:⋅(A::pblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:⋅(a::cbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:⋅(A::cmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:⋅(A::cblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:⋅(a::Number, b::kbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function Base.:⋅(a::Number,B::kmultvec)
+    C = copy(B)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = a*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:⋅(a::Number,B::kblade)
+	C = copy(B)
+	if length(C.conj) != 0
+		C.conj[1] = a * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:⋅(a::Number, b::pbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function Base.:⋅(a::Number,B::pmultvec)
+    C = copy(B)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = a*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:⋅(a::Number,B::pblade)
+	C = copy(B)
+	if length(C.conj) != 0
+		C.conj[1] = a * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:⋅(a::Number, b::cbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function Base.:⋅(a::Number,B::cmultvec)
+    C = copy(B)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = a*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:⋅(a::Number,B::cblade)
+	C = copy(B)
+	if length(C.conj) != 0
+		C.conj[1] = a * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:*(a::kbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:*(A::kmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:*(A::kblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:*(a::pbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:*(A::pmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:*(A::pblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:*(a::cbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:*(A::cmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:*(A::cblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:^(a::kbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:^(A::kmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:^(A::kblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:^(a::pbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:^(A::pmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:^(A::pblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:^(a::cbasis, b::Number)
+	c = copy(a)
+	c.scl = b*c.scl
+	return c
+end
+#########################################################
+function Base.:^(A::cmultvec,b::Number)
+    C = copy(A)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = b*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:^(A::cblade,b::Number)
+	C = copy(A)
+	if length(C.conj) != 0
+		C.conj[1] = b * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:^(a::Number, b::kbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function Base.:^(a::Number,B::kmultvec)
+    C = copy(B)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = a*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:^(a::Number,B::kblade)
+	C = copy(B)
+	if length(C.conj) != 0
+		C.conj[1] = a * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:^(a::Number, b::pbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function Base.:^(a::Number,B::pmultvec)
+    C = copy(B)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = a*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:^(a::Number,B::pblade)
+	C = copy(B)
+	if length(C.conj) != 0
+		C.conj[1] = a * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function Base.:^(a::Number, b::cbasis)
+	c = copy(b)
+	c.scl = a*c.scl
+	return c
+end
+#########################################################
+function Base.:^(a::Number,B::cmultvec)
+    C = copy(B)
+	l = length(C.comp)
+	for i=1:l
+		C.comp[i].scl = a*C.comp[i].scl
+	end
+	return C
+end
+#########################################################
+function Base.:^(a::Number,B::cblade)
+	C = copy(B)
+	if length(C.conj) != 0
+		C.conj[1] = a * C.conj[1]
+		return C
+	else
+		return C
+	end
+end
+#########################################################
+function ==(a::kbasis,b::kbasis)
+	if a.e == b.e && a.scl == b.scl
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::kmultvec,b::kmultvec)
+	A = a - b
+	if A.comp[1].scl == 0.0
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::kblade,b::kblade)
+	A = a - b
+	if A.comp[1].scl == 0.0
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::pbasis,b::pbasis)
+	if a.eb == b.eb && a.ep == b.ep && a.scl == b.scl
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::pmultvec,b::pmultvec)
+	A = a - b
+	if A.comp[1].scl == 0.0
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::pblade,b::pblade)
+	A = a - b
+	if A.comp[1].scl == 0.0
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::cbasis,b::cbasis)
+	if a.er == b.er && a.ei == b.ei && a.eo == a.eo && a.scl == b.scl
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::cmultvec,b::cmultvec)
+	A = a - b
+	if A.comp[1].scl == 0.0
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function ==(a::cblade,b::cblade)
+	A = a - b
+	if A.comp[1].scl == 0.0
+		return true
+	else
+		return false
+	end
+end
+#########################################################
+function pblade(a::pmultvec)
+	l = length(a.comp)
+	if l != 1
+		return error("Invalid!")
+	else
+		return pblade(a.comp[1])
+	end
+end
+
+
+function conftore(A::cmultvec)	
+	l = length(A.comp)	
+	f1 = 0	
+	f2 = 0	
+	for i=1:l		
+		if grade(A.comp[i]) != 1
+			f1 = 1		
+		end		
+		if A.comp[i].ei == true || A.comp[i].eo == true		
+			f2 = 1		
+		end 	
+	end	
+	if f1 == 0 && f2 == 0	
+		re = Vector{kbasis}(l)		
+		for i=1:l			
+			re[i] = kbasis(A.comp[i].er, A.comp[i].scl)		
+		end		
+		m = length(re[1].e)		
+		re = kmultvec(re)		
+		a = mvectovec([re])		
+		b = Vector{Float64}(m)		
+		for i=1:m			
+			b[i] = a[i]		
+		end		
+		return b	
+	else		
+		return error("Grade error")	
+	end
+end
+
+
+#########################################################
+function Base.:/(a::cmultvec, b::cmultvec)
+	l = length(b.comp)
+	m = length(a.comp)
+	if l!=1
+		return error("Can not divide by multivectors!")
+	else
+		c = copy(b.comp[1])
+		if grade(c)!=0
+			return error("Can not divide by multivectors!")
+		else
+			k = c.scl
+			A = copy(a)
+			for i=1:m
+				A.comp[i].scl = A.comp[i].scl/k
+			end
+			return A
+		end
+	end
+end
+#########################################################
 end
 
 
 
 
 function arvore(v,niv,pos,lista,n)
-    if niv<=n 
+    if niv<=n
         if pos==0
             aux=copy(v)
-            aux[niv]=true 
+            aux[niv]=true
             niv=niv+1
             lista=push!(lista,aux)
-            lista=arvore(aux,niv,0,lista,n) 
-            lista=arvore(aux,niv,1,lista,n) 
-            
+            lista=arvore(aux,niv,0,lista,n)
+            lista=arvore(aux,niv,1,lista,n)
+
         else
             niv=niv+1
             aux=copy(v)
             lista=arvore(aux,niv,0,lista,n)
             lista=arvore(aux,niv,1,lista,n)
-            
-        end    
+
+        end
     end
     return lista
 end
@@ -3419,13 +4217,13 @@ function buildtree(n)
    lista=[v]
    for i in arvore(v,1,0,[v],n)[2:length(arvore(v,1,0,[v],n))]
         lista=push!(lista,i)
-   end     
+   end
    for i in arvore(v,1,1,[v],n)[2:length(arvore(v,1,1,[v],n))]
         lista=push!(lista,i)
    end
    return lista
 end
-""" This function is used to define the space to work 
+""" This function is used to define the space to work
 ## Example
 ```julia-repl
 julia> layout(3)
@@ -3439,7 +4237,7 @@ for v in bn
     s=find(x->x==true,v)
     if isempty(s)
         eval(parse("const id = $v"))
-    else     
+    else
         conc=string(s[1])
         for k=2:length(s)
             conc=string(conc,s[k])
@@ -3449,5 +4247,3 @@ for v in bn
 end
 Liga.layout(dim)
 end
-
-
