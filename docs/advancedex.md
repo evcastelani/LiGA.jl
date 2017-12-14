@@ -25,7 +25,7 @@ Using GA we can get an elegant way for solving this problem without discretizati
 a more speed way to solve the problem but an elegant way. Even that Liga is not
 optimized for specific calculations. So, be careful. 
 
-In sequence we have the code. This code can be downloaded here.
+In sequence we have the code. This code can be downloaded [here](GA_dect.tar.gz).
 
 	#load basic packages
 	using PyPlot, Liga
@@ -101,6 +101,10 @@ In sequence we have the code. This code can be downloaded here.
 		ax[:axis]("equal")
 	end
 
+As result of example datafile-50-300-300-10.txt
+we have
+
+![figure_1.jpeg]
 
 [1] Duda, Richard O., and Peter E. Hart. "Use of the Hough transformation to 
 detect lines and curves in pictures." Communications of the ACM 15.1 (1972): 11-15.
