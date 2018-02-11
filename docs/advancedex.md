@@ -21,8 +21,7 @@ desired parameters (center and radius). Some improvements depending on coordinat
 changing. 
 
 Using GA we can get an elegant way for solving this problem without discretizations
-(for example, without discretization for radius r). Of course we want to show 
-a more speed way to solve the problem but an elegant way. Even that Liga is not
+(for example, without discretization for radius r). We do not expect to propose a faster way to solve but an elegant way. Besides Liga is not
 optimized for specific calculations. So, be careful. 
 
 In sequence we have the code. This code can be downloaded [here](GA_dect.tar.gz).
