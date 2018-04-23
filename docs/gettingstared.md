@@ -9,17 +9,17 @@ navigation: 2
 
 (In the future) Open Julia REPL and type
 
-     Pkg.add("liga")
+     Pkg.add("Liga")
 
 Or (by now) install it yourself as:
 
-     git clone https://github.com/evcastelani/liga
+     git clone https://github.com/evcastelani/Liga.jl
 
 ## Layouts
 
 As cited, just the second option is avaiable. So, you can type 
 
-	 include("liga.jl")
+	 using "Liga"
 
 This file contains all functions of the package. The first point that you must
 be in mind is *setup* the layout. The ```layout.jl``` is a file that write
@@ -29,7 +29,7 @@ an ```objects.jl```. The ```objects.jl``` generates a basis for some space that 
 
 we are generating  the G3 space as default, that is, we are generating a basis of vectors and multivectors for G3. But, we can work (with appropriated setup of elements),with G3,1 and G4,1. 
 
-Let us started with more basic example. After type ```layout(3)```  was created bases elements in ```objects.jl```. Type, for example
+Let us started with more basic example. After type ```layout(3)```  was created bases elements. Type, for example
 
      e1
 
