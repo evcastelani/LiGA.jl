@@ -15,7 +15,7 @@ A={(x1,y1),...,(xn,yn)} points try to get a circle with center (a,b) and radious
 r that contain p points of A. 
 
 The more classical way to solve this problem is using Hough Transform. 
-For a good review of this subject we recommend [1] and [2]. The ideia of Hough 
+For a good review of this subject we recommend [1] and [2]. The idea of Hough 
 Transform for circle detection is use a voting array and discretizations of the 
 desired parameters (center and radius). Some improvements depending on coordinates
 changing. 
