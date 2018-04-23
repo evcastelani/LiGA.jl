@@ -1,3 +1,5 @@
+__precompile__()
+
 module Liga
 import Base.show
 import Base.copy
@@ -19,28 +21,29 @@ retoaffin, affine, iretoaffin,
 euctoga, S, Hm, H, ovector, iH, irH,
 pconformal, ipconformal, conformal,
 iconformal, cbltopbl, pbltocbl, ==,
-conftore
+conftore,setupbase,invmultvect,
+layout,tree,buildtree
 
 
 #########################################################
 
 #layout
 
-function arvore(v,niv,pos,lista,n)
+function tree(v,niv,pos,lista,n)
     if niv<=n
         if pos==0
             aux=copy(v)
             aux[niv]=true
             niv=niv+1
             lista=push!(lista,aux)
-            lista=arvore(aux,niv,0,lista,n)
-            lista=arvore(aux,niv,1,lista,n)
+            lista=tree(aux,niv,0,lista,n)
+            lista=tree(aux,niv,1,lista,n)
 
         else
             niv=niv+1
             aux=copy(v)
-            lista=arvore(aux,niv,0,lista,n)
-            lista=arvore(aux,niv,1,lista,n)
+            lista=tree(aux,niv,0,lista,n)
+            lista=tree(aux,niv,1,lista,n)
 
         end
     end
@@ -50,10 +53,10 @@ end
 function buildtree(n)
    v=falses(n)
    lista=[v]
-   for i in arvore(v,1,0,[v],n)[2:length(arvore(v,1,0,[v],n))]
+   for i in tree(v,1,0,[v],n)[2:length(tree(v,1,0,[v],n))]
         lista=push!(lista,i)
    end
-   for i in arvore(v,1,1,[v],n)[2:length(arvore(v,1,1,[v],n))]
+   for i in tree(v,1,1,[v],n)[2:length(tree(v,1,1,[v],n))]
         lista=push!(lista,i)
    end
    return lista
@@ -67,19 +70,54 @@ generates a G3 space with base 1,e1,e2,e3,e12,e13,e23,e123
 
 """
 function layout(dim::Int)
-bn=buildtree(dim)
-for v in bn
-    s=find(x->x==true,v)
-    if isempty(s)
-        eval(parse("const id = $v"))
-    else
-        conc=string(s[1])
-        for k=2:length(s)
-            conc=string(conc,s[k])
+	bn=buildtree(dim)
+	abn=BitArray{1}(dim)
+	abnval=0.0
+	#sorting bn
+	bnval=zeros(2^dim)
+	for i=1:2^dim
+		bnval[i]=1
+		for j=1:length(bn[i])
+			if bn[i][j]==true
+				bnval[i]+=2^(j-1)
+			end			
+		end
+	end
+	for i=1:2^dim
+		for j=i+1:2^dim
+			if bnval[i]>bnval[j]
+				abnval=bnval[j]
+				abn=bn[j]
+				bnval[j]=bnval[i]
+				bn[j]=bn[i]
+				bnval[i]=abnval
+				bn[i]=abn
+			end
+		end
+	end
+	display(bnval)
+	display(bn)
+    bnew=Array{Array{Bool,1},1}(2^dim)
+    ind=1
+    for v in bn
+        s=find(x->x==true,v)
+        if isempty(s)
+			eval(parse("const id = $v ;"))
+			eval(parse("export id"))
+            bnew[ind]=eval(parse("$v"))
+            ind+=1
+        else
+            conc=string(s[1])
+            for k=2:length(s)
+                conc=string(conc,s[k])
+            end
+			eval(parse("const e$(conc) = $v ;"))
+			eval(parse("export e$(conc)"))
+            bnew[ind]=eval(parse("$v"))
+            ind+=1
         end
-        eval(parse("const e$(conc) = $v"))
     end
-end
+    eval(parse("const setupbase = $(bnew) ;"))
 end
 
 
@@ -249,6 +287,10 @@ geoprod(A::pblade, B::pblade)
 geoprod(a::cbasis, b::cbasis)
 geoprod(X::cmultvec, Y::cmultvec)
 geoprod(A::cblade, B::cblade)
+geoprod(A::Array{kbasis,1},B::Array{kbasis,1})
+geoprod(A::Array{kbasis,2},B::Array{kbasis,2})
+geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
+geoprod(A::Array{kbasis,2},B::Array{kbasis,1})
 
 ```
 Receives as input parameters elements of the same type and returns the geometric product between them.
@@ -283,6 +325,58 @@ function geoprod(a::kbasis, b::kbasis)
 	return ab
 end
 #########################################################
+function geoprod(A::Array{kbasis,2},B::Array{kbasis,2})
+    (ma,na)=size(A)
+    (mb,nb)=size(B)
+    if mb != na
+        error("DimensionMismatch")
+    else
+        C=Array{kmultvec,2}(ma,nb)
+        for i=1:ma,j=1:nb
+            C[i,j]=kmultvec([kbasis(id,0.0)])
+            for k=1:na
+                C[i,j]=C[i,j]+geoprod(A[i,k],B[k,j])
+            end
+        end
+    end
+    return C
+end
+function geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
+    ma=length(A)
+    (mb,na)=size(B)
+    if ma != mb
+        error("DimensionMismatch")
+    else
+        C=Array{kmultvec,1}(na)
+        for i=1:na
+            C[i]=kmultvec([kb(id,0.0)])
+            for j=1:ma
+                C[i]=C[i]+geoprod(A[j],B[j])
+            end
+        end
+    end
+    return C
+end
+function geoprod(A::Array{kbasis,2},B::Array{kbasis,1})
+    geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
+end
+function geoprod(A::Array{kbasis,1},B::Array{kbasis,1})
+    m=length(A)
+    n=length(B)
+    if m != n
+        error("DimensionMismatch")
+    else
+        C=kmultvec([kbasis(id,0.0)])
+        for i=1:m
+            C=C+geoprod(A[i],B[i])
+        end
+    end
+    return C
+end
+#########################################################
+function Base.:∘(A::Array{kbasis},B::Array{kbasis})
+    return geoprod(A,B)
+end
 function Base.:∘(a::kbasis,b::kbasis)
     return geoprod(a,b)
 end
@@ -513,6 +607,50 @@ function ovector(X::kmultvec)
 	else
 		return false
 	end
+end
+#########################################################
+#we are starting the inverse compute
+
+function invmultvect(vbase,mvet)
+    n=length(vbase)
+    C=Array{kbasis,2}(n,n)
+	D=zeros(n,n,n)
+	E=zeros(n,n)
+	mvetscl=zeros(n)
+	for i=1:n
+		for j=1:length(mvet.comp)
+			if mvet.comp[j].e == vbase[i]
+				mvetscl[i]=mvet.comp[j].scl
+			end
+		end
+	end
+        for i=1:n
+            for j=1:n
+                C[i,j]=geoprod(kb(vbase[i],1.0),kb(vbase[j],1.0))
+                for k=1:n
+                    if C[i,j]==kb(vbase[k],1.0)
+						D[i,j,k]=1.0
+						E[i,j]=D[i,j,k]*mvetscl[k]
+                    end
+                    if C[i,j]==kb(vbase[k],-1.0)
+						D[i,j,k]=-1.0
+						E[i,j]=D[i,j,k]*mvetscl[k]
+                    end
+                end
+            end
+        end
+    display(C)
+	display(D)
+	display(inv(E))
+	#dmvet=length(mvet.comp)
+	#for i=1:2^dim
+	#	for j=1:dmvet
+	#		for k=1:n 
+	#			#if mvet.comp.e == 
+	#		end
+	#	end
+	#	#if mvet.comp 
+	#end
 end
 #########################################################
 """
@@ -4134,33 +4272,33 @@ function pblade(a::pmultvec)
 end
 
 
-function conftore(A::cmultvec)	
-	l = length(A.comp)	
-	f1 = 0	
-	f2 = 0	
-	for i=1:l		
+function conftore(A::cmultvec)
+	l = length(A.comp)
+	f1 = 0
+	f2 = 0
+	for i=1:l
 		if grade(A.comp[i]) != 1
-			f1 = 1		
-		end		
-		if A.comp[i].ei == true || A.comp[i].eo == true		
-			f2 = 1		
-		end 	
-	end	
-	if f1 == 0 && f2 == 0	
-		re = Vector{kbasis}(l)		
-		for i=1:l			
-			re[i] = kbasis(A.comp[i].er, A.comp[i].scl)		
-		end		
-		m = length(re[1].e)		
-		re = kmultvec(re)		
-		a = mvectovec([re])		
-		b = Vector{Float64}(m)		
-		for i=1:m			
-			b[i] = a[i]		
-		end		
-		return b	
-	else		
-		return error("Grade error")	
+			f1 = 1
+		end
+		if A.comp[i].ei == true || A.comp[i].eo == true
+			f2 = 1
+		end 
+	end
+	if f1 == 0 && f2 == 0
+		re = Vector{kbasis}(l)
+		for i=1:l
+			re[i] = kbasis(A.comp[i].er, A.comp[i].scl)
+		end
+		m = length(re[1].e)
+		re = kmultvec(re)
+		a = mvectovec([re])
+		b = Vector{Float64}(m)
+		for i=1:m
+			b[i] = a[i]
+		end
+		return b
+	else
+		return error("Grade error")
 	end
 end
 
@@ -4191,59 +4329,67 @@ end
 
 
 
-function arvore(v,niv,pos,lista,n)
-    if niv<=n
-        if pos==0
-            aux=copy(v)
-            aux[niv]=true
-            niv=niv+1
-            lista=push!(lista,aux)
-            lista=arvore(aux,niv,0,lista,n)
-            lista=arvore(aux,niv,1,lista,n)
-
-        else
-            niv=niv+1
-            aux=copy(v)
-            lista=arvore(aux,niv,0,lista,n)
-            lista=arvore(aux,niv,1,lista,n)
-
-        end
-    end
-    return lista
-end
-
-function buildtree(n)
-   v=falses(n)
-   lista=[v]
-   for i in arvore(v,1,0,[v],n)[2:length(arvore(v,1,0,[v],n))]
-        lista=push!(lista,i)
-   end
-   for i in arvore(v,1,1,[v],n)[2:length(arvore(v,1,1,[v],n))]
-        lista=push!(lista,i)
-   end
-   return lista
-end
-""" This function is used to define the space to work
-## Example
-```julia-repl
-julia> layout(3)
-```
-generates a G3 space with base 1,e1,e2,e3,e12,e13,e23,e123
-
-"""
-function layout(dim::Int)
-bn=buildtree(dim)
-for v in bn
-    s=find(x->x==true,v)
-    if isempty(s)
-        eval(parse("const id = $v"))
-    else
-        conc=string(s[1])
-        for k=2:length(s)
-            conc=string(conc,s[k])
-        end
-        eval(parse("const e$(conc) = $v"))
-    end
-end
-Liga.layout(dim)
-end
+#function arvore(v,niv,pos,lista,n)
+#    if niv<=n
+#        if pos==0
+#            aux=copy(v)
+#            aux[niv]=true
+#            niv=niv+1
+#            lista=push!(lista,aux)
+#            lista=arvore(aux,niv,0,lista,n)
+#            lista=arvore(aux,niv,1,lista,n)
+#
+#        else
+#            niv=niv+1
+#            aux=copy(v)
+#            lista=arvore(aux,niv,0,lista,n)
+#            lista=arvore(aux,niv,1,lista,n)
+#
+#        end
+#    end
+#    return lista
+#end
+#
+#function buildtree(n)
+#   v=falses(n)
+#   lista=[v]
+#   for i in arvore(v,1,0,[v],n)[2:length(arvore(v,1,0,[v],n))]
+#        lista=push!(lista,i)
+#   end
+#   for i in arvore(v,1,1,[v],n)[2:length(arvore(v,1,1,[v],n))]
+#        lista=push!(lista,i)
+#   end
+#   return lista
+#end
+#""" This function is used to define the space to work
+### Example
+#```julia-repl
+#julia> layout(3)
+#```
+#generates a G3 space with base 1,e1,e2,e3,e12,e13,e23,e123
+#
+#"""
+#function layout(dim::Int)
+#    bn=buildtree(dim)
+#    bnew=Array{Array{Bool,1},1}(2^dim)
+#    ind=1
+#    for v in bn
+#        s=find(x->x==true,v)
+#        if isempty(s)
+#            eval(parse("const id = $v ;"))
+#            bnew[ind]=eval(parse("$v"))
+#            ind+=1
+#        else
+#            conc=string(s[1])
+#            for k=2:length(s)
+#                conc=string(conc,s[k])
+#            end
+#            eval(parse("const e$(conc) = $v ;"))
+#            bnew[ind]=eval(parse("$v"))
+#            ind+=1
+#        end
+#    end
+#    eval(parse("const setupbase = $(bnew) ;"))
+#Liga.layout(dim)
+#end
+#
