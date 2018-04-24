@@ -37,4 +37,5 @@ This project was developed as part of master degree dissertation of Vinicius Rit
 * Emerson Vitor Castelani
 * Jair da Silva
 * Wesley Shirabayashi
+* Valter Soares Camargo
 
