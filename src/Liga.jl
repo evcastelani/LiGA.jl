@@ -587,7 +587,7 @@ magnitude(a::cbasis)
 magnitude(A::cblade)
 
 ```
-Returns the magnitude of the input element, that is.
+Returns the magnitude of the input element.
 """
 function magnitude(a::kbasis)
 	b = mvreverse(a)
@@ -610,38 +610,55 @@ function ovector(X::kmultvec)
 end
 #########################################################
 #we are starting the inverse compute
-
-function invmultvect(vbase,mvet)
-    n=length(vbase)
+"""
+```
+invmultvec(a::kmultvec)
+```
+Returns the inverse of a multi vector input. Be 
+careful with this function because in current version
+it isn't optimized!
+"""
+function invmultvec(mvet)
+    n=length(Liga.setupbase)
     C=Array{kbasis,2}(n,n)
 	D=zeros(n,n,n)
 	E=zeros(n,n)
 	mvetscl=zeros(n)
 	for i=1:n
 		for j=1:length(mvet.comp)
-			if mvet.comp[j].e == vbase[i]
+			if mvet.comp[j].e == Liga.setupbase[i]
 				mvetscl[i]=mvet.comp[j].scl
 			end
 		end
 	end
         for i=1:n
             for j=1:n
-                C[i,j]=geoprod(kb(vbase[i],1.0),kb(vbase[j],1.0))
+                C[i,j]=geoprod(kb(Liga.setupbase[i],1.0),kb(Liga.setupbase[j],1.0))
                 for k=1:n
-                    if C[i,j]==kb(vbase[k],1.0)
+                    if C[i,j]==kb(Liga.setupbase[k],1.0)
 						D[i,j,k]=1.0
-						E[i,j]=D[i,j,k]*mvetscl[k]
+						#E[i,j]=D[i,j,k]*mvetscl[k]
                     end
-                    if C[i,j]==kb(vbase[k],-1.0)
+                    if C[i,j]==kb(Liga.setupbase[k],-1.0)
 						D[i,j,k]=-1.0
-						E[i,j]=D[i,j,k]*mvetscl[k]
+						#E[i,j]=D[i,j,k]*mvetscl[k]
                     end
-                end
+				end
             end
-        end
-    display(C)
-	display(D)
-	display(inv(E))
+		end
+		for k=1:n
+			E[k,:]=mvetscl'*D[:,:,k]
+		end
+    #display(C)
+	#display(D)
+	#display(E)
+	#display(inv(E))
+	invE=inv(E)[:,1]
+	ivect=kb(Liga.setupbase[1],invE[1])
+	for i=2:n
+		ivect=ivect+kb(Liga.setupbase[i],invE[i])
+	end
+	return ivect
 	#dmvet=length(mvet.comp)
 	#for i=1:2^dim
 	#	for j=1:dmvet
