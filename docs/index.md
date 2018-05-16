@@ -6,7 +6,7 @@ navigation: 1
 
 # LIGA
 
-## Library for Geometric Algebra
+## Library for Geometric Algebra (Version 0.1.3)
 
 
 This page is devoted to document and make easier the use of LIGA- Library for 
@@ -14,6 +14,8 @@ Geometric Algebra. Our intent is provide a good experience of use for students
 and reseachers interesting in use (and programming) a Geometric Algebra 
 framework. All scripts were made in [Julia language](www.julialang.org), 
 version 0.6. 
+
+There is a miscellany of libraries for GA study. Our intent here is not to provide software to compete with such libraries in performance or generality. Our goal is to provide a relatively simple, open, easy to install and focused environment for Julia users.
 
 It's important a previous contact with Geometric Algebra in theoretical aspects.
  In this sense, we recommend the following references:
