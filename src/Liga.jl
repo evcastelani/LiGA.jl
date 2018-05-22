@@ -21,7 +21,7 @@ retoaffin, affine, iretoaffin,
 euctoga, S, Hm, H, ovector, iH, irH,
 pconformal, ipconformal, conformal,
 iconformal, cbltopbl, pbltocbl, ==,
-conftore,setupbase,invmultvect,
+conftore,invmultvect,
 layout,tree,buildtree
 
 
@@ -32,7 +32,7 @@ layout,tree,buildtree
 function tree(v,niv,pos,lista,n)
     if niv<=n
         if pos==0
-            aux=copy(v)
+            aux=copy(v);
             aux[niv]=true
             niv=niv+1
             lista=push!(lista,aux)
@@ -41,7 +41,7 @@ function tree(v,niv,pos,lista,n)
 
         else
             niv=niv+1
-            aux=copy(v)
+            aux=copy(v);
             lista=tree(aux,niv,0,lista,n)
             lista=tree(aux,niv,1,lista,n)
 
@@ -70,7 +70,7 @@ generates a G3 space with base 1,e1,e2,e3,e12,e13,e23,e123
 
 """
 function layout(dim::Int)
-	bn=buildtree(dim)
+	bn=buildtree(dim);
 	abn=BitArray{1}(dim)
 	abnval=0.0
 	#sorting bn
@@ -95,29 +95,31 @@ function layout(dim::Int)
 			end
 		end
 	end
-	display(bnval)
-	display(bn)
+	#display(bnval)
+	#display(bn)
     bnew=Array{Array{Bool,1},1}(2^dim)
     ind=1
     for v in bn
         s=find(x->x==true,v)
         if isempty(s)
-			eval(parse("const id = $v ;"))
-			eval(parse("export id"))
-            bnew[ind]=eval(parse("$v"))
+			eval(parse("const id = $v ;"));
+			eval(parse("export id;"));
+            bnew[ind]=eval(parse("$v "));
             ind+=1
         else
             conc=string(s[1])
             for k=2:length(s)
                 conc=string(conc,s[k])
             end
-			eval(parse("const e$(conc) = $v ;"))
-			eval(parse("export e$(conc)"))
-            bnew[ind]=eval(parse("$v"))
+			eval(parse("const e$(conc) = $v ;"));
+			eval(parse("export e$(conc);"));
+            bnew[ind]=eval(parse("$v ;"));
             ind+=1
         end
-    end
-    eval(parse("const setupbase = $(bnew) ;"))
+	end
+	eval(parse("export setupbase  ;"));
+	eval(parse("const setupbase = $(bnew);"));
+	return ;
 end
 
 
@@ -1100,6 +1102,9 @@ function show(io::IO, a::kbasis)
 	elseif (a.scl != 1) || (grade(a) == 0)
 		print(io, "$(a.scl)")
 	end
+	if (a.scl == 1) && (grade(a) != 0)
+		print(io, "$(a.scl)")
+	end
 	flag = 0
 	for i=1:length(a.e)
 		if a.e[i] == true
@@ -1120,7 +1125,11 @@ function show(io::IO, A::kmultvec)
 	l = length(A.comp)
 	if l != 0
 		for i=1:(l-1)
-			print(io, "$(A.comp[i]) + ")
+			if A.comp[i+1].scl>=0
+				print(io, "$(A.comp[i])+")
+			else
+				print(io, "$(A.comp[i])")
+			end
 		end
 		print(io, "$(A.comp[l])")
 	else
