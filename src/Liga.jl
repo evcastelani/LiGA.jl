@@ -21,8 +21,7 @@ retoaffin, affine, iretoaffin,
 euctoga, S, Hm, H, ovector, iH, irH,
 pconformal, ipconformal, conformal,
 iconformal, cbltopbl, pbltocbl, ==,
-conftore,invmultvect,
-layout,tree,buildtree
+conftore,layout,tree,buildtree
 
 
 #########################################################
@@ -614,13 +613,13 @@ end
 #we are starting the inverse compute
 """
 ```
-invmultvec(a::kmultvec)
+inverse(a::kmultvec)
 ```
 Returns the inverse of a multi vector input. Be 
 careful with this function because in current version
 it isn't optimized!
 """
-function invmultvec(mvet)
+function inverse(mvet::kmultvec)
     n=length(Liga.setupbase)
     C=Array{kbasis,2}(n,n)
 	D=zeros(n,n,n)
@@ -1303,9 +1302,13 @@ function show(io::IO, A::pmultvec)
 		print(io, "$(A.comp[1])")
 		for i=2:l
 			if A.comp[i].scl != 0
-				print(io, " + $(A.comp[i])")
+				if A.comp[i].scl > 0
+					print(io, " +$(A.comp[i])")
+				else
+					print(io, " $(A.comp[i])")	
+				end
 			else
-				print(io, " + 0.0")
+				print(io, " +0.0")
 			end
 		end
 	end
@@ -1361,7 +1364,7 @@ function geoprod(a::pbasis, b::pbasis)
 end
 #########################################################
 function Base.:∘(a::pbasis,b::pbasis)
-    return geoprod(A,B)
+    return geoprod(a,b)
 end
 function Base.:∘(a::Number, b::pbasis)
 	c = copy(b)
@@ -1385,7 +1388,7 @@ function inner(a::pbasis, b::pbasis)
 end
 #########################################################
 function Base.:⋅(a::pbasis,b::pbasis)
-    return inner(A,B)
+    return inner(a,b)
 end
 #########################################################
 function outer(a::pbasis, b::pbasis)
@@ -1399,7 +1402,7 @@ function outer(a::pbasis, b::pbasis)
 end
 #########################################################
 function Base.:^(a::pbasis,b::pbasis)
-    return outer(A,B)
+    return outer(a,b)
 end
 #########################################################
 function scalar(a::pbasis, b::pbasis)
@@ -1423,7 +1426,7 @@ function bscalar(a::pbasis, b::pbasis)
 end
 #########################################################
 function Base.:*(a::pbasis,b::pbasis)
-    return scalar(A,B)
+    return scalar(a,b)
 end
 #########################################################
 function mvsum(a::pbasis, b::pbasis)
@@ -2784,6 +2787,14 @@ function mvectovec(X::Vector{cmultvec})
 	return mvectovec(Y)
 end
 #########################################################
+"""
+```
+cblade(X::Vector{cmultvec})
+```
+Creates a blade in the geometric algebra \$ \\mathbb{G}_{k+1,1} \$ composed by the 
+outer product of the elements of X.
+
+"""
 type cblade
 	conj::Vector{cmultvec}
 	function cblade(X::Vector{cmultvec})
