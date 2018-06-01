@@ -342,7 +342,39 @@ function geoprod(A::Array{kbasis,2},B::Array{kbasis,2})
     end
     return C
 end
+function geoprod(A::Array{kmultvec,2},B::Array{kmultvec,2})
+    (ma,na)=size(A)
+    (mb,nb)=size(B)
+    if mb != na
+        error("DimensionMismatch")
+    else
+        C=Array{kmultvec,2}(ma,nb)
+        for i=1:ma,j=1:nb
+            C[i,j]=kmultvec([kbasis(id,0.0)])
+            for k=1:na
+                C[i,j]=C[i,j]+geoprod(A[i,k],B[k,j])
+            end
+        end
+    end
+    return C
+end
 function geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
+    ma=length(A)
+    (mb,na)=size(B)
+    if ma != mb
+        error("DimensionMismatch")
+    else
+        C=Array{kmultvec,1}(na)
+        for i=1:na
+            C[i]=kmultvec([kb(id,0.0)])
+            for j=1:ma
+                C[i]=C[i]+geoprod(A[j],B[j])
+            end
+        end
+    end
+    return C
+end
+function geoprod(A::Array{kmultvec,1},B::Array{kmultvec,2})
     ma=length(A)
     (mb,na)=size(B)
     if ma != mb
@@ -361,7 +393,23 @@ end
 function geoprod(A::Array{kbasis,2},B::Array{kbasis,1})
     geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
 end
+function geoprod(A::Array{kmultvec,2},B::Array{kmultvec,1})
+    geoprod(A::Array{kmultvec,1},B::Array{kmultvec,2})
+end
 function geoprod(A::Array{kbasis,1},B::Array{kbasis,1})
+    m=length(A)
+    n=length(B)
+    if m != n
+        error("DimensionMismatch")
+    else
+        C=kmultvec([kbasis(id,0.0)])
+        for i=1:m
+            C=C+geoprod(A[i],B[i])
+        end
+    end
+    return C
+end
+function geoprod(A::Array{kmultvec,1},B::Array{kmultvec,1})
     m=length(A)
     n=length(B)
     if m != n
@@ -376,6 +424,9 @@ function geoprod(A::Array{kbasis,1},B::Array{kbasis,1})
 end
 #########################################################
 function Base.:∘(A::Array{kbasis},B::Array{kbasis})
+    return geoprod(A,B)
+end
+function Base.:∘(A::Array{kmultvec},B::Array{kmultvec})
     return geoprod(A,B)
 end
 function Base.:∘(a::kbasis,b::kbasis)
@@ -1144,6 +1195,15 @@ function show(io::IO, X::kblade)
 	print(io, "($(X.conj[l]))")
 end
 #########################################################
+"""
+```
+H(X::Vector{Float64})
+H(X::kmultvec)
+```
+Homegenization.
+It takes a vector in \$\mathbb{R}^n\$
+into its embedding in the affine space.
+"""
 function H(X::Vector{Float64})
 	l = length(X)
 	Y = Vector{Float64}(l+1)
@@ -1164,6 +1224,12 @@ function H(X::kmultvec)
 	return H(Z)
 end
 #########################################################
+"""
+```
+iH(X::kmultvec)
+```
+Inversion for homonezation function H.
+"""
 function iH(X::kmultvec)
 	Y = reduct(X)
 	l = length(Y.comp)
