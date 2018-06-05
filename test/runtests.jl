@@ -6,7 +6,7 @@ layout(3)
 
 @testset "layout_tests" begin
     @test id == [false,false,false]
-    @test e1 == [true,true,false]
+    @test e1 == [true,false,false]
     @test e2 == [false,true,false]
     @test e123 == [true,true,true]
 end
