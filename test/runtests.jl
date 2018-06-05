@@ -2,4 +2,5 @@ using Liga
 using Base.Test
 
 # write your own tests here
-@test 1 == 2
+layout(3)
+@test  e1==[true,false,false]
