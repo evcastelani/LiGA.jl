@@ -21,7 +21,7 @@ retoaffin, affine, iretoaffin,
 euctoga, S, Hm, H, ovector, iH, irH,
 pconformal, ipconformal, conformal,
 iconformal, cbltopbl, pbltocbl, ==,
-conftore,layout,tree,buildtree
+conftore,layout,tree,buildtree,transpose
 
 
 #########################################################
@@ -124,6 +124,8 @@ end
 
 
 ########################################################
+
+
 """
 ```
 c(x::Vector{Bool}, a::Number)
@@ -137,7 +139,7 @@ julia> kbasis(e23)
 1.0e23
 ```
 """
-type kbasis
+type kbasis 
     e::Vector{Bool}
 	scl::Number
 
@@ -170,7 +172,7 @@ julia> kmultvec([kbasis(e1, 2.0), kbasis(e12, 3.3), kbasis(e123)])
 2.0e1 + 3.3e12 + 1.0e123
 ```
 """
-type kmultvec
+type kmultvec 
     comp::Vector{kbasis}
 
 	kmultvec(a::kbasis) = new([a])
@@ -288,14 +290,13 @@ geoprod(A::pblade, B::pblade)
 geoprod(a::cbasis, b::cbasis)
 geoprod(X::cmultvec, Y::cmultvec)
 geoprod(A::cblade, B::cblade)
-geoprod(A::Array{kbasis,1},B::Array{kbasis,1})
-geoprod(A::Array{kbasis,2},B::Array{kbasis,2})
-geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
 geoprod(A::Array{kbasis,2},B::Array{kbasis,1})
-
+geoprod(A::Array{kbasis,2},B::Array{kbasis,2})
+geoprod(A::Array{kmultvec,2},B::Array{kmultvec,1})
+geoprod(A::Array{kmultvec,2},B::Array{kmultvec,2})
 ```
 Receives as input parameters elements of the same type and returns the geometric product between them.
-
+This function is extended to array like a traditional product.
 It can be used the operator "∘ (circ)" instead of call the function.
 """
 function geoprod(a::kbasis, b::kbasis)
@@ -358,69 +359,87 @@ function geoprod(A::Array{kmultvec,2},B::Array{kmultvec,2})
     end
     return C
 end
-function geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
-    ma=length(A)
-    (mb,na)=size(B)
-    if ma != mb
-        error("DimensionMismatch")
-    else
-        C=Array{kmultvec,1}(na)
-        for i=1:na
-            C[i]=kmultvec([kb(id,0.0)])
-            for j=1:ma
-                C[i]=C[i]+geoprod(A[j],B[j])
-            end
-        end
-    end
-    return C
-end
-function geoprod(A::Array{kmultvec,1},B::Array{kmultvec,2})
-    ma=length(A)
-    (mb,na)=size(B)
-    if ma != mb
-        error("DimensionMismatch")
-    else
-        C=Array{kmultvec,1}(na)
-        for i=1:na
-            C[i]=kmultvec([kb(id,0.0)])
-            for j=1:ma
-                C[i]=C[i]+geoprod(A[j],B[j])
-            end
-        end
-    end
-    return C
-end
 function geoprod(A::Array{kbasis,2},B::Array{kbasis,1})
-    geoprod(A::Array{kbasis,1},B::Array{kbasis,2})
+    mb=length(B)
+    (ma,na)=size(A)
+    if na != mb
+        error("DimensionMismatch")
+    else
+        C=Array{kmultvec,1}(ma)
+        for i=1:ma
+            C[i]=kmultvec([kb(id,0.0)])
+            for j=1:na
+                C[i]=C[i]+geoprod(A[j],B[j])
+            end
+        end
+    end
+    return C
 end
+
 function geoprod(A::Array{kmultvec,2},B::Array{kmultvec,1})
-    geoprod(A::Array{kmultvec,1},B::Array{kmultvec,2})
-end
-function geoprod(A::Array{kbasis,1},B::Array{kbasis,1})
-    m=length(A)
-    n=length(B)
-    if m != n
+    mb=length(B)
+    (ma,na)=size(A)
+    if na != mb
         error("DimensionMismatch")
     else
-        C=kmultvec([kbasis(id,0.0)])
-        for i=1:m
-            C=C+geoprod(A[i],B[i])
+        C=Array{kmultvec,1}(ma)
+        for i=1:ma
+            C[i]=kmultvec([kb(id,0.0)])
+            for j=1:na
+                C[i]=C[i]+geoprod(A[j],B[j])
+            end
         end
     end
     return C
 end
-function geoprod(A::Array{kmultvec,1},B::Array{kmultvec,1})
-    m=length(A)
-    n=length(B)
-    if m != n
-        error("DimensionMismatch")
-    else
-        C=kmultvec([kbasis(id,0.0)])
-        for i=1:m
-            C=C+geoprod(A[i],B[i])
-        end
-    end
-    return C
+
+"""
+```
+transpose(A::Array{kbasis,1})
+transpose(A::Array{kbasis,2})
+transpose(A::Array{kmultvec,1})
+transpose(A::Array{kmultvec,2})
+```
+Returns the transpose of an Array defined by kbasis or kmultvec elements.
+"""
+function transpose(A::Array{kbasis,1})
+	m=length(A)
+	C=Array{kbasis,2}(1,m)
+	for i=1:m 
+		C[1,i]=A[i]
+	end
+	return C
+end
+
+function transpose(A::Array{kbasis,2})
+	(m,n)=size(A)
+	C=Array{kbasis,2}(n,m)
+	for i=1:n
+		for j=1:m 
+		C[i,j]=A[j,i]
+		end
+	end
+	return C
+end
+
+function transpose(A::Array{kmultvec,1})
+	m=length(A)
+	C=Array{kmultvec,2}(1,m)
+	for i=1:m 
+		C[1,i]=A[i]
+	end
+	return C
+end
+
+function transpose(A::Array{kmultvec,2})
+	(m,n)=size(A)
+	C=Array{kmultvec,2}(n,m)
+	for i=1:n
+		for j=1:m 
+		C[i,j]=A[j,i]
+		end
+	end
+	return C
 end
 #########################################################
 function Base.:∘(A::Array{kbasis},B::Array{kbasis})

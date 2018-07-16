@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Conformal Space ($\mathbb{G}_{k+1,1}$) · LiGA- Library for Geometric Algebra</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/documenter.css" rel="stylesheet" type="text/css"/><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><nav class="toc"><a href="index.html"><img class="logo" src="assets/logo.png" alt="LiGA- Library for Geometric Algebra logo"/></a><h1>LiGA- Library for Geometric Algebra</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="search.html"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="index.html">Overview</a></li><li><a class="toctext" href="gettingstarted.html">Getting Started</a></li><li><span class="toctext">Tutorials</span><ul><li><a class="toctext" href="types.html">Types</a></li><li><a class="toctext" href="Gkspace.html">$\mathbb{G}_k$ Space</a></li><li><a class="toctext" href="projspace.html">Projective Space ($\mathbb{G}_{k+1}$)</a></li><li class="current"><a class="toctext" href="confspace.html">Conformal Space ($\mathbb{G}_{k+1,1}$)</a><ul class="internal"><li><a class="toctext" href="#pbasis-and-cbasis-1"><code>pbasis</code> and <code>cbasis</code></a></li><li><a class="toctext" href="#Multivectors-and-blades-1">Multivectors and blades</a></li><li><a class="toctext" href="#Operations-and-functions-1">Operations and functions</a></li></ul></li><li><a class="toctext" href="advancedex.html">Advanced Examples</a></li></ul></li><li><a class="toctext" href="summary.html">Summaries</a></li></ul></nav><article id="docs"><header><nav><ul><li>Tutorials</li><li><a href="confspace.html">Conformal Space ($\mathbb{G}_{k+1,1}$)</a></li></ul><a class="edit-page" href="https://github.com/evcastelani/Liga.jl/blob/master/docs/src/confspace.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Conformal Space ($\mathbb{G}_{k+1,1}$)</span><a class="fa fa-bars" href="#"></a></div></header><div></div><h1><a class="nav-anchor" id="Conformal-Space-(\\mathbb{G}_{k1,1})-1" href="#Conformal-Space-(\\mathbb{G}_{k1,1})-1">Conformal Space ($\mathbb{G}_{k+1,1}$)</a></h1><p>In space $\mathbb{G}_k$ we can use the <em>stereographic embedding</em>, taking an element of  $\mathbb{G}_k$ to $\mathbb{G}_{k+1}$ using the function <code>S</code> that represents the <em>stereographic embedding</em>, so to take this element to the <em>conformal space</em> is used the function <code>Hm</code>, which represents the homogenization in the projective space with negative signature (Minkowski space), that is, instead of a new basis element that squares to <code>+1</code>, another basis element is added which is the <code>e-</code> that squares to <code>-1</code>.</p><p>Since these functions depend on <code>e+</code> and <code>e-</code>, the types based on <code>pbasis</code> were created, however, one can use <code>e∞</code> and <code>e∘</code> as basis elements for <em>conformal space</em> which is a subspace of $\mathbb{G}_k$ to $\mathbb{G}_{k+1}$, then the types based on <code>cbasis</code> were created for this purpose.</p><h2><a class="nav-anchor" id="pbasis-and-cbasis-1" href="#pbasis-and-cbasis-1"><code>pbasis</code> and <code>cbasis</code></a></h2><p>The main difference between these two forms is in these types, the components <code>e∞</code> and <code>e∘</code> are generated from <code>e+</code> and <code>e-</code> through the following expressions.</p><pre><code class="language-none">e∞ = e₋ + e₊
+e∘ = 0.5(e₋ - e₊)</code></pre><p>thus,</p><pre><code class="language-none">(e∞)² = (e₋ + e₊)² = 0
+(e∘)² = 0.5(e₋ - e₊)² = 0
+e∞ ⋅ e∘ = -1</code></pre><p>Another difference is in the creation of a <code>cbasis</code> element, while creating an element of type <code>pbasis</code> requires a logical array and an additional logical element, to create an element of the <code>cbasis</code> type we need two more logical elements, that is,</p><pre><code class="language-none">pbasis(e1, true, 1.0)</code></pre><p>creates the element</p><pre><code class="language-none">1.0e1-</code></pre><p>of type <code>pbasis</code> and</p><pre><code class="language-none">cbasis(e1, true, false, 1.0)</code></pre><p>creates the element</p><pre><code class="language-none">e1∞</code></pre><p>which is of the type <code>cbasis</code>. Let us try to explicit more these concepts. We can create e∞ and e∘ directly using the <code>cbasis</code>type.</p><pre><code class="language-julia-repl">julia&gt; einf=cb(id, true, false, 1.0)
+1.0e∞
+
+julia&gt; typeof(einf)
+Liga.cbasis
+
+julia&gt; e0=cb(id, false, true, 1.0)
+1.0e∘
+
+julia&gt; typeof(e0)
+Liga.cbasis
+
+julia&gt; einf ∘ e0
+1.0e∞∘
+
+julia&gt; typeof(einf ∘ e0)
+Liga.cmultvec</code></pre><h2><a class="nav-anchor" id="Multivectors-and-blades-1" href="#Multivectors-and-blades-1">Multivectors and blades</a></h2><p>The only difference between <code>pmultvec</code> and <code>cmultvec</code> as well as for <code>pblade</code> and <code>cblade</code>, is the type of basis that compose them.</p><p>For multivectors</p><pre><code class="language-none">pmultvec(Vector{pbasis})
+cmultvec(Vector{cbasis})</code></pre><p>and for blades</p><pre><code class="language-none">pblade(Vector{pmultvec})
+cblade(Vector{cmultvec})</code></pre><p>Let us to see an example to define a <em>c-multivector</em>.</p><pre><code class="language-julia-repl">julia&gt; u = cmultvec([cb(id, true, false, 1.0),cb(e12, true, false, 2.0)])
+1.0e∞ + 2.0e12∞
+
+julia&gt; typeof(u)
+Liga.cmultvec
+
+julia&gt; v = cmultvec([cb(e1, true, false, 3.0),cb(e123, true, false, -2.0)])
+3.0e1∞ + -2.0e123∞
+
+julia&gt; typeof(v)
+Liga.cmultvec</code></pre><h2><a class="nav-anchor" id="Operations-and-functions-1" href="#Operations-and-functions-1">Operations and functions</a></h2><p>The operations and functions for these types are the same as for the Gₖ space, only the conjugate function is added, which returns the conjugate of an element.</p><p>The main difference here is that all functions depend on the types <code>pbasis</code>, <code>pmultvec</code> and <code>pblade</code>, that is, when elements of the <code>cbasis</code>, <code>cmultvec</code> or <code>cblade</code> types are operated they are automatically converted to one of the first three types and them reconverted back. Following previuos idea, let us see  <em>cmultivectors</em> in action.</p><pre><code class="language-julia-repl">julia&gt; u = cmultvec([cb(id, true, false, 3.0),cb(e13, false, false, -7.0)])
+3.0e∞ + -7.0e13
+
+julia&gt; v = cmultvec([cb(e1, true, false, 3.0),cb(e123, true, false, -2.0)])
+3.0e1∞ + -2.0e123∞
+
+julia&gt; u+v #sum
+3.0e∞ + -7.0e13 + 3.0e1∞ + -2.0e123∞
+
+julia&gt; u ∘ v #geometric product
+21.0e3∞ + 14.0e2∞
+
+julia&gt; u⋅v #inner product
+14.0e2∞
+
+julia&gt; typeof(u⋅v)
+Liga.cmultvec
+
+julia&gt; #and others...</code></pre><footer><hr/><a class="previous" href="projspace.html"><span class="direction">Previous</span><span class="title">Projective Space ($\mathbb{G}_{k+1}$)</span></a><a class="next" href="advancedex.html"><span class="direction">Next</span><span class="title">Advanced Examples</span></a></footer></article></body></html>
