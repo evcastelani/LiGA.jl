@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Advanced Examples · LiGA- Library for Geometric Algebra</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/documenter.css" rel="stylesheet" type="text/css"/><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><nav class="toc"><a href="index.html"><img class="logo" src="assets/logo.png" alt="LiGA- Library for Geometric Algebra logo"/></a><h1>LiGA- Library for Geometric Algebra</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="search.html"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="index.html">Overview</a></li><li><a class="toctext" href="gettingstarted.html">Getting Started</a></li><li><span class="toctext">Tutorials</span><ul><li><a class="toctext" href="types.html">Types</a></li><li><a class="toctext" href="Gkspace.html">$\mathbb{G}_k$ Space</a></li><li><a class="toctext" href="projspace.html">Projective Space ($\mathbb{G}_{k+1}$)</a></li><li><a class="toctext" href="confspace.html">Conformal Space ($\mathbb{G}_{k+1,1}$)</a></li><li class="current"><a class="toctext" href="advancedex.html">Advanced Examples</a><ul class="internal"></ul></li></ul></li><li><a class="toctext" href="summary.html">Summaries</a></li></ul></nav><article id="docs"><header><nav><ul><li>Tutorials</li><li><a href="advancedex.html">Advanced Examples</a></li></ul><a class="edit-page" href="https://github.com/evcastelani/Liga.jl/blob/master/docs/src/advancedex.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Advanced Examples</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Advanced-Examples-1" href="#Advanced-Examples-1">Advanced Examples</a></h1><p>Here we are considering an example of Liga in circle detection.  This problem is an important problem with several applications in Computational Vision. </p><p>Roughly speaking, this problem consists in, given a binarized image defined by  A={(x1,y1),...,(xn,yn)} points try to get a circle with center (a,b) and radious r that contain p points of A. </p><p>The more classical way to solve this problem is using Hough Transform.  For a good review of this subject we recommend [1] and [2]. The idea of Hough  Transform for circle detection is use a voting array and discretizations of the  desired parameters (center and radius). Some improvements depending on coordinates changing. </p><p>Using GA we can get an elegant way for solving this problem without discretizations (for example, without discretization for radius r). We do not expect to propose a faster way to solve but an elegant way. Besides Liga is not optimized for specific calculations. So, be careful. </p><p>In sequence we have the code. This code can be downloaded <a href="assets/GA_dect.tar.gz">here</a>.</p><pre><code class="language-none">#load basic packages
+using PyPlot, Liga
+layout(2)
+
+#Auxiliary function	
+function findind(tensor::Array{Float64,3})
+  	(m,n,p)=size(tensor)
+  	vlmax=maximum(tensor)
+  	for i=1:m,j=1:n,k=1:p
+          if tensor[i,j,k]==vlmax
+              return i,j,k,vlmax
+          end
+	end
+end
+
+
+function main(filename)
+	#reading the example file
+	A=readdlm(filename)
+	#setting the size of the image and defining main parameters
+	m=300
+	n=300
+	maxrad=150	
+	npun=length(A[:,1])	
+	Vot=zeros(m,n,maxrad)
+	#embeding A in conformal space and stored in EA
+	EA=Array{cmultvec,2}(npun,1)
+	einf=cb(id, true, false, 1.0)
+	ea12=cb(e12, false, false, 1.0)
+	eaid=cb(id, true, false, -1.0)
+	SS=cmultvec(1.0*(e1,false,true))
+	raio=1.0
+	centro=[1.0,1.0]
+	for i=1:npun
+		EA[i]=conformal([A[i,1],A[i,2]])
+	end
+	#display(EA)
+	#the main block of the idea
+	#for i=1:npun,j=i+1:npun,k=j+1:npun #conservative method
+	for i=1:2:npun,j=i+1:3:npun,k=j+1:5:npun #speed up				
+		X=EA[i]^EA[j]^EA[k]
+		SS=dual(X)
+		raio = sqrt(((SS⋅SS)/((SS⋅einf)⋅(SS⋅einf))).comp[1].scl) 
+		centro = conftore(projection(SS, ea12) / (SS ⋅ eaid))
+    	if 1.0&lt;=centro[1]&lt;=m &amp;&amp; 1.0&lt;=centro[2]&lt;=n
+			if 1.0&lt;=abs(raio)&lt;=maxrad
+				centro=round.(Int,centro)
+				raio=abs.(round(Int,raio))
+				Vot[centro[1],centro[2],raio]=Vot[centro[1],centro[2],raio]+1
+			end
+		end		
+	end		
+	sol=zeros(3)
+	valsol=0.0
+	sol[1],sol[2],sol[3],valsol=findind(Vot)
+	display(sol)
+	display(valsol)
+	draw_solution(A,sol[1],sol[2],sol[3])
+end
+
+function draw_solution(A,cfx,cfy,rf)
+	angulo=[0:((2*pi)/360):2*pi+1;]
+	x=zeros(length(angulo))
+	y=zeros(length(angulo))
+	for i=1:length(angulo)
+    	x[i]=(abs(rf)*cos(angulo[i])+cfx)
+   		y[i]=(abs(rf)*sin(angulo[i])+cfy)
+	end
+	plot(A[:,1],A[:,2],&quot;.&quot;)
+	plot(x,y,color=&quot;red&quot;,&quot;-&quot;)
+	ax=gca()
+	ax[:axis](&quot;equal&quot;)
+end</code></pre><p>As result of example datafile-50-300-300-10.txt we have</p><p><img src="assets/figure_1.jpeg" alt="assets/figure_1.jpeg"/></p><p>[1] Duda, Richard O., and Peter E. Hart. &quot;Use of the Hough transformation to  detect lines and curves in pictures.&quot; Communications of the ACM 15.1 (1972): 11-15.</p><p>[2] Illingworth, John, and Josef Kittler. &quot;A survey of the Hough transform. &quot;Computer vision, graphics, and image processing 44.1 (1988): 87-116.</p><footer><hr/><a class="previous" href="confspace.html"><span class="direction">Previous</span><span class="title">Conformal Space ($\mathbb{G}_{k+1,1}$)</span></a><a class="next" href="summary.html"><span class="direction">Next</span><span class="title">Summaries</span></a></footer></article></body></html>
