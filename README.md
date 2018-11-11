@@ -16,4 +16,5 @@ After that, Liga was imported. To use, just need to type:
 layout(3,1,"Conformal")
 ```
 
+Consequently, the Conformal enviroment G(3,1) is created. If you need to setup other enviroment, you need to restart Julia and import Liga again.
 
