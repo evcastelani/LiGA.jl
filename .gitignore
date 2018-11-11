@@ -1,6 +1,6 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
-docs/
-src/
-test/
+/docs/
+/src/
+/test/
