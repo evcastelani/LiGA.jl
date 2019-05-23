@@ -104,10 +104,10 @@ inner and outer product. As result, constants array are created
 to optimize these products to multivectors.
 ## Example
 ```julia-repl
-julia> A,B,C=OperationTable()
+julia> A,B,C,D=OperationTable()
 ```
-returns A a table for geometric product, B a table for inner product
-and C a table for outer product.
+returns A a table for geometric product, B a table for inner product,
+C a table for outer product and D a tensor.
 """
 function OperationTable()
 	len=2^(GIdLayout[1]+GIdLayout[2])

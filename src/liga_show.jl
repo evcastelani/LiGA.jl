@@ -48,7 +48,6 @@ function show(io::IO, b::BasisBlade)
 						end
 					end
 				end
-
 			end
 		else
 			if b.index == -1
@@ -74,7 +73,6 @@ function show(io::IO, b::BasisBlade)
 				end
 			end
 		end
-
 	end
 end
 function show(io::IO,M::MultiVector)
@@ -122,4 +120,11 @@ function show(io::IO,M::MultiVector)
 				end
 			end
 		end
+end
+
+function show(io::IO,B::Blade)
+	print(io,"($(B.scalar)) * $(B.vectors[1])")
+	for i=2:B.grade
+		print(io," ∧ $(B.vectors[i])")
+	end
 end
