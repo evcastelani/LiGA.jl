@@ -6,6 +6,8 @@ makedocs(format = :html,
 	pages =["Overview" => "index.md",
 			  "Getting Started" => "gettingstarted.md",
 			  "Guide" => "functions.md"],
-	html_prettyurls = false
+	#html_prettyurls = false
 	)
-	
+deploydocs(
+	repo = "github.com/evcastelani/Liga.jl.git"
+)
