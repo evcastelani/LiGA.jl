@@ -1,4 +1,4 @@
-using Documenter
+using Documenter, Liga
 
 makedocs(format = :html,
 	assets = ["assets/favicon.ico"],
