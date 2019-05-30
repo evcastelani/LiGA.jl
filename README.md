@@ -1,10 +1,11 @@
 # LIGA - Library for Geometric Algebra
 
 [![Build Status](https://travis-ci.org/evcastelani/Liga.jl.svg?branch=master)](https://travis-ci.org/evcastelani/Liga.jl)
-[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://evcastelani.github.io/Liga.jl/latest/)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://evcastelani.github.io/Liga.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://evcastelani.github.io/Liga.jl/dev)
 [![codecov.io](http://codecov.io/github/evcastelani/Liga.jl/coverage.svg?branch=master)](http://codecov.io/github/evcastelani/Liga.jl?branch=master)
 
-It is dev version of Liga. 
+It is new version of Liga. 
 
 ### Basic usage
 
