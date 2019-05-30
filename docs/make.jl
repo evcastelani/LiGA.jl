@@ -1,6 +1,6 @@
 using Documenter, Liga
 
-makedocs(format = :html,
+makedocs(
 	assets = ["assets/favicon.ico"],
 	sitename = "Liga- Library for Geometric Algebra",
 	pages =["Overview" => "index.md",
