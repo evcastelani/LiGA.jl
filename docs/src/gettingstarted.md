@@ -13,8 +13,7 @@ pkg> add Liga
 To start to use Liga, just type:
 
 ```@repl 1
-push!(LOAD_PATH,"/Users/emersonvitor/Google Drive/NewLiga/NewLiga_16")
-using NewLiga
+using Liga
 ```
 
 The second step to use Liga is define an environment. The environment is defined through the ```layout function```.
@@ -27,7 +26,7 @@ layout(3,1,"GA")
 In this case, were created the space ``\mathbb{G}_{3,1}``. If you want to see more information about the created space, just type
 
 ```@repl 1
-layout_info()
+Liga.layoutinfo()
 ```
 
 Essentially, the layout function has 4 arguments (one is an optional kwarg):

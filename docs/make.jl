@@ -6,7 +6,7 @@ makedocs(
 	pages =["Overview" => "index.md",
 			  "Getting Started" => "gettingstarted.md",
 			  "Guide" => "functions.md"],
-	#html_prettyurls = false
+#	format = Documenter.HTML(prettyurls = false),
 	modules=[Liga]
 	)
 deploydocs(
