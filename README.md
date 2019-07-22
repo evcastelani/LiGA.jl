@@ -9,17 +9,16 @@ It is new version of Liga.
 
 ### Basic usage
 
-Once the files have been downloaded, you need to import `NewLiga`. In order to do that, type:
+This library is not well documented and updated in the metadata base. So the best way to install and use it is by cloning the directory and then using (just) the documentation API. Updates on documentation and metadata are coming soon.
 
 ``` 
-push!(LOAD_PATH,"path to file/NewLiga/")
-using NewLiga
+add https://github.com/evcastelani/Liga.jl
+
+using Liga
 ```
-After that, Liga was imported. To use, just need to type:
+and then 
 
 ```
 layout(3,1,"Conformal")
 ```
-
-Consequently, the Conformal enviroment G(3,1) is created. If you need to setup other enviroment, you need to restart Julia and import Liga again.
-
+to work with G(3,1), for example.
