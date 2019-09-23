@@ -10,8 +10,26 @@ handling environment where the user can calculate GA operations. After
 `0.4.2` version, Liga was entirely rewrite to be more faster and user friendly.
  
 
+<<<<<<< HEAD
 
 ### Basic usage
 
 
 
+=======
+### Basic usage
+
+This library is not well documented and updated in the metadata base. So the best way to install and use it is by cloning the directory and then using (just) the documentation API. Updates on documentation and metadata are coming soon.
+
+``` 
+add https://github.com/evcastelani/Liga.jl
+
+using Liga
+```
+and then 
+
+```
+layout(3,1,"Conformal")
+```
+to work with G(3,1), for example.
+>>>>>>> 231341fee6a1d59f6019c7df20d3719650ccb740
