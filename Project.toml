@@ -1,7 +1,7 @@
 name = "Liga"
 uuid = "c6f2b8c2-80b4-11e9-198e-97a7f734ea2b"
 authors = ["EV. Castelani <emersonvitor@gmail.com>", "J. Silva <jairmt@gmail.com>","W. Shirabayashi <wvishirabayashi@uem.br>","V. Riter <viniriter@gmail.com >","V.Soares <valtersoaresdecamargo@gmail.com >" ]
-version = "0.6.0"
+version = "0.9.0"
 
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
