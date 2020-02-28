@@ -1,5 +1,7 @@
 # LIGA - Library for Geometric Algebra
 
+This library was passing by changes and new functions are comming.
+
 [![Build Status](https://travis-ci.org/evcastelani/Liga.jl.svg?branch=master)](https://travis-ci.org/evcastelani/Liga.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://evcastelani.github.io/Liga.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://evcastelani.github.io/Liga.jl/dev)
